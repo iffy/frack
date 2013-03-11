@@ -24,15 +24,15 @@ class DBTests(TestCase):
         d = store.fetchTicket(4712)
         def _check(result):
             self.assertEqual(set(result.keys()),
-                             {"type", "status", "summary", "time", "reporter",
+                             set(["type", "status", "summary", "time", "reporter",
                               "owner", "priority",  "resolution", "component",
                               "keywords", "cc", "branch", "branch_author",
                               "launchpad_bug", "description", "changes",
-                              "attachments", "id", "changetime"})
+                              "attachments", "id", "changetime"]))
 
             self.assertEqual(len(result['changes']), 45)
             self.assertEqual(set(result['changes'][0].keys()),
-                             {"newvalue", "author", "oldvalue", "time", "field"})
+                             set(["newvalue", "author", "oldvalue", "time", "field"]))
 
         return d.addCallback(_check)
 
