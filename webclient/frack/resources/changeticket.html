@@ -1,0 +1,150 @@
+<h3><a id="edit">Add/Change #{{id}} ({{summary}})</a></h3>
+  <div class="field">
+    <fieldset class="iefix">
+      <label for="comment">Comment</label><br />
+      <p><textarea id="comment" name="comment" class="wikitext" rows="10" cols="78">
+      </textarea></p>
+    </fieldset>
+  </div>
+  <fieldset id="properties">
+    <legend>
+      Change Properties
+    </legend>
+    <table>
+      <tr>
+        <th><label for="field-summary">Summary:</label></th>
+        <td class="fullrow" colspan="3">
+          <input type="text" id="field-summary" name="field_summary"
+                 value="{{summary}}" size="70" />
+        </td>
+      </tr>
+      <tr>
+        <th><label for="field-reporter">Reporter:</label></th>
+        <td class="fullrow" colspan="3">
+          <input type="text" id="field-reporter" name="field_reporter"
+                 value="{{reporter}}" size="70" />
+        </td>
+      </tr>
+      <tr>
+        <th><label for="field-description">Description:</label></th>
+        <td class="fullrow" colspan="3">
+          <textarea id="field-description" name="field_description"
+                    class="wikitext" rows="10" cols="68">{{{raw_description}}}</textarea>
+        </td>
+      </tr>
+      <tr>
+        <th class="col1">
+          <label for="field-type">Type:</label>
+        </th>
+        <td class="col1">
+          <select id="field-type" name="field_type">
+            <option>{{type}}</option>
+          </select>
+        </td>
+        <th class="col2">
+          <label for="field-priority">Priority:</label>
+        </th>
+        <td class="col2">
+          <select id="field-priority" name="field_priority">
+            <option>highest</option>
+            <option>high</option>
+            <option>normal</option>
+            <option>low</option>
+            <option>lowest</option>
+          </select>
+        </td>
+      </tr><tr>
+        <th class="col2">
+          <label for="field-component">Component:</label>
+        </th>
+        <td class="col2">
+          <select id="field-component" name="field_component">
+            <option>{{component}}</option>
+          </select>
+        </td>
+      </tr><tr>
+        <th class="col1">
+          <label for="field-keywords">Keywords:</label>
+        </th>
+        <td class="col1">
+          <input type="text" id="field-keywords" name="field_keywords"
+                 value="{{keywords}}" />
+        </td>
+        <th class="col2">
+          <label for="field-cc">Cc:</label>
+        </th>
+        <td class="col2">
+          <span>
+            <input type="text" id="field-cc"
+   title="Space or comma delimited email addresses and usernames are accepted."
+                   name="field_cc" value="{{cc}}" />
+          </span>
+        </td>
+      </tr><tr>
+        <th class="col1">
+          <label for="field-branch">Branch:</label>
+        </th>
+        <td class="col1">
+          <input type="text" id="field-branch" name="field_branch"
+                 value="{{branch}}" />
+        </td>
+        <th class="col2">
+          <label for="field-branch_author">Author:</label>
+        </th>
+        <td class="col2">
+          <input type="text" id="field-branch_author" name="field_branch_author"
+                 value="{{branch_author}}" />
+        </td>
+      </tr><tr>
+        <th class="col1">
+          <label for="field-launchpad_bug">Launchpad Bug:</label>
+        </th>
+        <td class="col1">
+          <input type="text" id="field-launchpad_bug" name="field_launchpad_bug"
+                 value="{{launchpad_bug}}" />
+        </td>
+        <th class="col2">
+        </th>
+        <td class="col2">
+        </td>
+      </tr>
+    </table>
+  </fieldset>
+  <fieldset id="action">
+    <legend>Action</legend>
+    <div>
+      <input type="radio" id="action_leave" name="action" value="leave"
+             checked="checked" />
+      <label for="action_leave">leave</label> as {{status}}
+      <span class="hint"></span>
+    </div>
+    {{#closed}}
+    <div>
+      <input type="radio" id="action_reopen" name="action" value="reopen" />
+      <label for="action_reopen">reopen</label>
+      <span class="hint">Next status will be 'reopened'</span>
+    </div>
+    {{/closed}}
+    {{^closed}}
+    <div>
+      <input type="radio" id="action_resolve" name="action" value="resolve" />
+      <label for="action_resolve">resolve</label>
+      as <select name="action_resolve_resolve_resolution" id="action_resolve_resolve_resolution"><option selected="selected">fixed</option><option>invalid</option><option>wontfix</option><option>duplicate</option><option>worksforme</option></select>
+      <span class="hint">The resolution will be set. Next status will be 'closed'</span>
+    </div>
+    <div>
+      <label for="action_reassign">reassign</label>
+      to <select name="action_reassign_reassign_owner"
+                 id="action_reassign_reassign_owner"><option></option>
+    </div>
+    <div>
+      <input type="radio" id="action_accept" name="action" value="accept" />
+      <label for="action_accept">accept</label>
+      <span class="hint">The owner will change from {{owner}} to {{trac_username}}. Next status will be 'assigned'</span>
+    </div>
+    {{/closed}}
+  </fieldset>
+  <div class="buttons">
+    <input type="button" name="preview" value="Preview" />
+    <input type="button" name="sumbit" value="Submit changes" />
+  </div>

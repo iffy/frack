@@ -1,0 +1,73 @@
+<h1>
+  <span class="title">
+    Ticket #{{id}}
+  </span>
+  <span class="statuses">
+    <span class="type">{{type}}</span>
+    <span class="status">{{status}}</span>
+    <span class="resolution">{{resolution}}</span>
+  </span>
+</h1>
+<div id="ticket">
+  <div class="date">
+    <p>Opened {{time}}</p>
+    <p>Last modified {{changetime}}</p>
+  </div>
+  <h2 class="summary searchable">{{{summary}}}</h2>
+  <table class="properties">
+    <tbody><tr>
+        <th id="h_reporter">Reported by:</th>
+        <td headers="h_reporter" class="searchable">{{reporter}}</td>
+        <th id="h_owner">Owned by:</th>
+        <td headers="h_owner">{{owner}}</td>
+      </tr>
+      <tr>
+        <th id="h_priority">
+          Priority:
+        </th>
+        <td headers="h_priority">{{priority}}</td>
+        <th id="h_milestone">
+          Milestone:
+        </th>
+        <td headers="h_milestone">
+          <a class="missing milestone"
+             href="http://twistedmatrix.com/trac/milestone/"
+             rel="nofollow"></a>
+        </td>
+      </tr><tr>
+        <th id="h_component">
+          Component:
+        </th>
+        <td headers="h_component">{{component}}</td>
+        <th id="h_keywords">
+          Keywords:
+        </th>
+        <td headers="h_keywords" class="searchable">{{keywords}}</td>
+      </tr><tr>
+        <th id="h_cc">
+          Cc:
+        </th>
+        <td headers="h_cc" class="searchable">{{cc}}</td>
+        <th id="h_branch">
+          Branch:
+        </th>
+        <td headers="h_branch">{{branch}}</td>
+      </tr><tr>
+        <th id="h_branch_author">
+          Author:
+        </th>
+        <td headers="h_branch_author">{{branch_author}}</td>
+        <th id="h_launchpad_bug">
+          Launchpad Bug:
+        </th>
+        <td headers="h_launchpad_bug">{{launchpad_bug}}</td>
+      </tr>
+  </tbody></table>
+  <div class="description">
+    <h3 id="comment:description">
+      Description
+      <a title="Link to this section"
+         href="#comment:description" class="anchor"> ¶</a></h3>
+    <div class="searchable">{{{description}}}</div>
+  </div>
+</div>
