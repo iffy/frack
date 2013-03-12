@@ -131,6 +131,7 @@ class DBStore(object):
         Find a username by looking up the associated email address.
         """
         c = self.connection.cursor()
+        # check session_attribute for a session associated with email
         c.execute(self.q("SELECT sid from session_attribute "
                          "where name = 'email' and authenticated = 1 "
                                                "and value = ?"), (email,))
