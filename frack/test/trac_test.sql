@@ -1,5 +1,5 @@
 BEGIN TRANSACTION;
-CREATE TABLE ticket (id int not null primary key, type text, time int, changetime int, component text, severity text, priority text, owner text, reporter text, cc text, version text, milestone text, status text, resolution text, summary text, description text, keywords text);
+CREATE TABLE ticket (id integer not null primary key, type text, time int, changetime int, component text, severity text, priority text, owner text, reporter text, cc text, version text, milestone text, status text, resolution text, summary text, description text, keywords text);
 INSERT INTO "ticket" VALUES(3312,'defect',1214395506,1332115134,'core',NULL,'highest','stupidInvaders','stupidInvaders','exarkun',NULL,'','closed','fixed','Silent server crash with kqueue.reactor','While high loaded, with ~1000 clients, server silently crashes. Crash looks like: 
 server seems to be working but clients can''t join the server.At that there no errors in stderr and logs.
 We may possibly have an error in our code. Everything was made according to manuals.

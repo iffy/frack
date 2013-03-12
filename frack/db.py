@@ -2,6 +2,7 @@
 # See LICENSE for details.
 import time, hashlib, os
 from twisted.internet import defer
+from norm.operation import Insert, SQL
 
 class UnauthorizedError(Exception):
     """
@@ -40,6 +41,65 @@ def postgres_probably_connect(name, username):
 def sqlite_connect(path):
     import sqlite3
     return sqlite3, sqlite3.connect(path)
+
+
+
+class TicketStore(object):
+    """
+    Abstract, authenticated access to Trac's ticket tables.
+    """
+
+    def __init__(self, executor, user):
+        """
+        @param executor: A C{norm.common.Executor}.
+        """
+        self.ex = executor
+        self.user = user
+
+
+    def createTicket(self, data):
+        """
+        Create a ticket.
+
+        @param data: XXX
+        """
+        now = int(time.time())
+        columns = ['type', 'component', 'severity',
+                   'priority', 'owner', 'cc', 'version',
+                   'milestone', 'status', 'resolution', 'summary',
+                   'description', 'keywords']
+        insert_data = [
+            ('reporter', self.user),
+            ('time', now),
+            ('changetime', now),
+            ('status', 'new'),
+            ('summary', data['summary']),
+        ]
+        for column in columns:
+            insert_data.append((column, data.get(column)))
+        
+        insert = Insert('ticket', insert_data, lastrowid=True)
+        return self.ex.run(insert)
+
+
+    def fetchTicket(self, number):
+        columns = ['id', 'type', 'time', 'changetime', 'component', 'severity',
+                   'priority', 'owner', 'reporter', 'cc', 'version',
+                   'milestone', 'status', 'resolution', 'summary',
+                   'description', 'keywords']
+        sql = '''
+            SELECT %(columns)s
+            FROM ticket
+            WHERE id = ?''' % {
+                'columns': ','.join(columns),
+            }
+        select = SQL(sql, (number,))
+        def firstOne(rows):
+            row = rows[0]
+            return dict(zip(columns, row))
+        return self.ex.run(select).addCallback(firstOne)
+
+
 
 
 class DBStore(object):

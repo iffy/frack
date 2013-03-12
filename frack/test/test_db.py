@@ -1,18 +1,139 @@
 import sqlite3
 from twisted.trial.unittest import TestCase
 from twisted.python.util import sibpath
-from frack.db import DBStore, UnauthorizedError, NotFoundError
+from twisted.internet import defer
+from frack.db import TicketStore, DBStore, UnauthorizedError, NotFoundError
+from norm.sqlite import SqliteSyncTranslator
+from norm.common import Executor, SyncRunner
 
 
 
-class DBTests(TestCase):
+class TicketStoreTest(TestCase):
+
+
+    def populatedStore(self):
+        db = sqlite3.connect(":memory:")
+        db.executescript(open(sibpath(__file__, "trac_test.sql")).read())
+        translator = SqliteSyncTranslator()
+        runner = SyncRunner(db)
+        executor = Executor(translator, runner)
+        store = TicketStore(executor, user='foo')
+        return store
+
+
+    @defer.inlineCallbacks
+    def test_createTicket_minimal(self):
+        """
+        You can create tickets
+        """
+        store = self.populatedStore()
+        # a minimal ticket
+        data = {
+            'summary': 'the summary',
+            }
+        ticket_id = yield store.createTicket(data)
+        self.assertNotEqual(ticket_id, None,
+            "Should return the new id: %s" % (ticket_id,))
+
+        ticket = yield store.fetchTicket(ticket_id)
+        # Assert for each of the fields:
+        # http://trac.edgewall.org/wiki/TracDev/DatabaseSchema/TicketSystem#Tableticket
+        # XXX should these be '' instead of None?
+        self.assertEqual(ticket['id'], ticket_id)
+        self.assertEqual(ticket['type'], None)
+        self.assertTrue(ticket['time'])
+        self.assertTrue(ticket['changetime'])
+        self.assertEqual(ticket['time'], ticket['changetime'])
+
+        self.assertEqual(ticket['component'], None)
+        self.assertEqual(ticket['severity'], None)
+        self.assertEqual(ticket['priority'], None)
+        self.assertEqual(ticket['owner'], None)
+        self.assertEqual(ticket['reporter'], 'foo', "Should use the Store's "
+                         "user as the report")
+        self.assertEqual(ticket['cc'], None)
+        self.assertEqual(ticket['version'], None)
+        self.assertEqual(ticket['milestone'], None)
+        self.assertEqual(ticket['status'], 'new')
+        self.assertEqual(ticket['resolution'], None)
+        self.assertEqual(ticket['summary'], 'the summary')
+        self.assertEqual(ticket['description'], None)
+        self.assertEqual(ticket['keywords'], None)
+
+
+    @defer.inlineCallbacks
+    def test_createTicket_maximal(self):
+        """
+        You can create a ticket with all kinds of options.
+        """
+        store = self.populatedStore()
+        # Do I need to enforce that all the values are valid options in their
+        # specific join tables?
+        data = {
+            # do I need to enforce that this is in enum type=ticket_type? 
+            'type': 'type',
+            'component': 'component',
+            'severity': 'severity',
+            'priority': 'priority',
+            'owner': 'owner',
+            'cc': 'cc',
+            'version': 'version',
+            'milestone': 'milestone',
+            'status': 'status',
+            'resolution': 'resolution',
+            'summary': 'summary',
+            'description': 'description',
+            'keywords': 'keywords',
+            }
+        ticket_id = yield store.createTicket(data)
+        ticket = yield store.fetchTicket(ticket_id)
+        
+        self.assertEqual(ticket['id'], ticket_id)
+        self.assertEqual(ticket['type'], 'type')
+        self.assertTrue(ticket['time'])
+        self.assertTrue(ticket['changetime'])
+        self.assertEqual(ticket['time'], ticket['changetime'])
+
+        self.assertEqual(ticket['component'], 'component')
+        self.assertEqual(ticket['severity'], 'severity')
+        self.assertEqual(ticket['priority'], 'priority')
+        self.assertEqual(ticket['owner'], 'owner')
+        self.assertEqual(ticket['reporter'], 'foo', "Should use the Store's "
+                         "user as the report")
+        self.assertEqual(ticket['cc'], 'cc')
+        self.assertEqual(ticket['version'], 'version')
+        self.assertEqual(ticket['milestone'], 'milestone')
+        self.assertEqual(ticket['status'], 'new')
+        self.assertEqual(ticket['resolution'], 'resolution')
+        self.assertEqual(ticket['summary'], 'summary')
+        self.assertEqual(ticket['description'], 'description')
+        self.assertEqual(ticket['keywords'], 'keywords')
+        
+
+
+    @defer.inlineCallbacks
+    def test_fetchTicket(self):
+        """
+        You can fetch existing ticket information
+        """
+        ticket = yield self.store.fetchTicket(4712)
+        self.assertEqual(ticket['type'])
+
+
+
+
+
+
+class DBStoreTest(TestCase):
     """
-    Tests for storage/retrieval.
+    Tests for database-backed ticket storage/retrieval.
     """
 
     def setUp(self):
+        # test with an sqlite database
         self.db = sqlite3.connect(":memory:")
         self.db.executescript(open(sibpath(__file__, "trac_test.sql")).read())
+
 
     def test_fetchTicket(self):
         """
