@@ -9,6 +9,12 @@ class UnauthorizedError(Exception):
     """
 
 
+class NotFoundError(Exception):
+    """
+    The requested thing was not found.
+    """
+
+
 def postgres_probably_connect(name, username):
     """
     Connect to postgres or die trying.
@@ -65,6 +71,8 @@ class DBStore(object):
                 " reporter, cc, status, resolution, summary, description, "
                 "keywords FROM ticket WHERE id = ?"), [ticketNumber])
         ticketRow = c.fetchone()
+        if not ticketRow:
+            return defer.fail(NotFoundError("No such ticket", ticketNumber))
         c.execute(self.q("SELECT time, author, field, oldvalue, newvalue "
                          "FROM ticket_change WHERE ticket = ? ORDER BY time"),
                   [ticketNumber])
@@ -85,6 +93,36 @@ class DBStore(object):
         for change in changesRow:
             ticket['changes'].append(dict([(k, v or '') for k, v in zip(changeFields, change)]))
         return defer.succeed(ticket)
+
+
+    def groupComments(self, ticket):
+        """
+        Group a ticket's changes into comments.
+
+        @return: The same C{ticket} dictionary with a new C{'comments'}
+            item.  Yes, this modifies the passed-in ticket.
+        """
+        comments = []
+        current = {}
+        last_time = None
+        for change in ticket['changes']:
+            if change['time'] != last_time:
+                last_time = change['time']
+                current = {
+                    'time': last_time,
+                    'changes': [],
+                    'number': str(len(comments)+1),
+                    'replyto': None,
+                }
+                comments.append(current)
+            if change['field'] == 'comment':
+                current['author'] = change['author']
+                current['comment'] = change['newvalue']
+                if '.' in change['oldvalue']:
+                    current['replyto'] = change['oldvalue'].split('.')[0]
+            current['changes'].append(change)
+        ticket['comments'] = comments
+        return ticket
 
 
     def lookupByEmail(self, email):

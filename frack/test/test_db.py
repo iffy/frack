@@ -1,7 +1,7 @@
 import sqlite3
 from twisted.trial.unittest import TestCase
 from twisted.python.util import sibpath
-from frack.db import DBStore, UnauthorizedError
+from frack.db import DBStore, UnauthorizedError, NotFoundError
 
 
 
@@ -35,6 +35,52 @@ class DBTests(TestCase):
                              set(["newvalue", "author", "oldvalue", "time", "field"]))
 
         return d.addCallback(_check)
+
+
+    def test_groupComments(self):
+        """
+        You can grouped changes into related comments.
+        """
+        store = DBStore((sqlite3, self.db))
+        d = store.fetchTicket(4712)
+        d.addCallback(store.groupComments)
+        def _check(result):
+            self.assertEqual(set(result.keys()),
+                             set(["type", "status", "summary", "time", "reporter",
+                              "owner", "priority",  "resolution", "component",
+                              "keywords", "cc", "branch", "branch_author",
+                              "launchpad_bug", "description", "changes",
+                              "attachments", "id", "changetime", "comments"]))
+
+            self.assertEqual(len(result['comments']), 21)
+            self.assertEqual([x['number'] for x in result['comments']],
+                             map(str,range(1,22)))
+
+            comment = result['comments'][0]
+            self.assertEqual(comment['author'], 'cyli')
+            self.assertEqual(comment['time'], 1288021673)
+            self.assertEqual(comment['number'], '1')
+            self.assertEqual(len(comment['changes']), 2)
+            self.assertEqual(set(comment['changes'][0].keys()),
+                             set(["newvalue", "author", "oldvalue", "time", "field"]))
+
+            self.assertEqual(result['comments'][13]['replyto'], '12', "Should "
+                             "know about replies to comments")
+
+        return d.addCallback(_check)        
+
+
+    def test_fetchTicket_dne(self):
+        """
+        `fetchTicket` will errback if the ticket doesn't exist.
+        """
+        store = DBStore((sqlite3, self.db))
+        d = store.fetchTicket(1000000)
+        def _cb(result):
+            self.fail("Should have errbacked with NotFoundError: %r" % (result,))
+        def _eb(result):
+            result.trap(NotFoundError)
+        return d.addCallbacks(_cb, _eb)
 
 
     def test_lookupByEmail(self):

@@ -23,6 +23,7 @@ from twisted.web.resource import Resource
 from twisted.web.server import NOT_DONE_YET, Site
 
 from frack.responder import FrackResponder
+from frack.web import TicketApp
 
 class AMPFactory(ServerFactory):
     """
@@ -74,13 +75,14 @@ class JSONRPCService(Service):
 
     @param mediaPath: A filesystem path containing web client files.
     """
-    def __init__(self, port, responder, mediaPath):
+    def __init__(self, port, responder, mediaPath, store, templateRoot):
         self.port = port
         self.responder = responder
         self.mediaPath = mediaPath
         self.root = Resource()
         self.root.putChild('amp', JSONRPCFace(self.responder))
         self.root.putChild('ui', static.File(self.mediaPath))
+        self.root.putChild('web', TicketApp(store, templateRoot).resource())
         self.site = Site(self.root)
 
     def startService(self):

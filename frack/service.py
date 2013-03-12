@@ -11,15 +11,17 @@ from frack.wiring import AMPService, JSONRPCService
 class FrackService(Service):
 
     def __init__(self, dbconnection, ampPort, jsonRPCPort, mediaPath,
-                 baseUrl):
+                 baseUrl, templateRoot):
         self.store = DBStore(dbconnection)
         self.responder = FrackResponder(self.store, baseUrl)
         self.ampPort = ampPort
         self.jsonRPCPort = jsonRPCPort
         self.mediaPath = mediaPath
+        self.templateRoot = templateRoot
         self.amp = AMPService(self.ampPort, self.responder)
         self.jsonrpc = JSONRPCService(self.jsonRPCPort, self.responder,
-                                      self.mediaPath)
+                                      self.mediaPath, self.store,
+                                      self.templateRoot)
 
     def startService(self):
         self.amp.startService()
@@ -50,7 +52,13 @@ class Options(usage.Options):
                     os.path.dirname(os.path.abspath(__file__))), 'webclient'),
                       'Location of media files for web UI.'],
                      ['baseUrl', 'b', 'http://%s:1353/' % (socket.getfqdn(),),
-                      'Domain web client will be accessed from']]
+                      'Domain web client will be accessed from'],
+
+                     ['templates', 't',
+                      os.path.join(os.path.dirname(
+                    os.path.dirname(os.path.abspath(__file__))), 'templates'),
+                      'Location of jinja2 template files.'],
+    ]
 
     longdesc = """A postmodern deconstruction of the Python web-based issue tracker."""
 
@@ -72,4 +80,5 @@ def makeService(config):
                         ampPort=config['amp'],
                         jsonRPCPort=config['jsonrpc'],
                         mediaPath=config['mediapath'],
-                        baseUrl=config['baseUrl'])
+                        baseUrl=config['baseUrl'],
+                        templateRoot=config['templates'])
