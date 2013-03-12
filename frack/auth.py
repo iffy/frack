@@ -1,7 +1,8 @@
 # Copyright (c) Twisted Matrix Laboratories.
 # See LICENSE for details.
 from twisted.internet import defer
-
+from twisted.cred import error
+from zope.interface import Interface, implements, Attribute
 import hashlib
 import os
 
@@ -42,3 +43,52 @@ class InMemoryAuthStore(object):
         L{getToken})
         """
         return defer.succeed(self._data[key])
+
+
+
+class ITokenCredentials(Interface):
+    
+    token = Attribute("The token used to identify the user")
+
+
+
+class TokenCredentials(object):
+    
+    implements(ITokenCredentials)
+
+    def __init__(self, token):
+        self.token = token
+
+
+
+class TokenChecker(object):
+
+    def __init__(self, auth_store):
+        self.auth_store = auth_store
+
+
+    def requestAvatarId(self, credentials):
+        def eb(err):
+            raise error.UnauthorizedLogin()
+        d = defer.maybeDeferred(self.auth_store.getUserByToken, credentials.token)
+        return d.addErrback(eb)
+
+
+
+class IUser(Interface):
+    """
+    A frack user's interface.
+    """
+
+    name = Attribute("""User name""")
+
+
+class User(object):
+    """
+    A frack user.
+    """
+
+    def __init__(self, name):
+        self.name = name
+
+
