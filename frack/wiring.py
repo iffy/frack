@@ -22,7 +22,6 @@ from twisted.web import static
 from twisted.web.resource import Resource
 from twisted.web.server import NOT_DONE_YET, Site
 
-from frack.responder import FrackResponder
 from frack.web import TicketApp
 
 class AMPFactory(ServerFactory):
@@ -64,6 +63,26 @@ class AMPService(Service):
 
 
 
+class WebService(Service):
+    """
+    Service for plain web interface for tickets
+
+    @param port: An endpoint description, suitable for `serverToString`.
+    """
+    def __init__(self, port, mediaPath, store, templateRoot):
+        self.port = port
+        self.root = Resource()
+        self.root.putChild('tickets', TicketApp(store, templateRoot).resource())
+        self.root.putChild('static', static.File(mediaPath))
+        self.site = Site(self.root)
+
+
+    def startService(self):
+        self.endpoint = serverFromString(reactor, self.port)
+        self.endpoint.listen(self.site)
+
+
+
 class JSONRPCService(Service):
     """
     Service for JSON-RPC listener and web client.
@@ -75,17 +94,13 @@ class JSONRPCService(Service):
 
     @param mediaPath: A filesystem path containing web client files.
     """
-    def __init__(self, port, responder, mediaPath, store, templateRoot):
+    def __init__(self, port, responder, mediaPath):
         self.port = port
         self.responder = responder
         self.mediaPath = mediaPath
         self.root = Resource()
         self.root.putChild('amp', JSONRPCFace(self.responder))
         self.root.putChild('ui', static.File(self.mediaPath))
-        # XXX for testing - make this configurable, or make a tac file, eh?
-        from frack.web import FakeAuthenticatorDontActuallyUseExceptForTesting
-        self.root.putChild('web', FakeAuthenticatorDontActuallyUseExceptForTesting(
-                           TicketApp(store, templateRoot).resource()))
         self.site = Site(self.root)
 
     def startService(self):

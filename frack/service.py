@@ -3,39 +3,24 @@
 import os, pwd, socket
 from twisted.python import usage
 from twisted.application.service import Service
-from twisted.python.util import sibpath
 from frack.db import DBStore, sqlite_connect, postgres_probably_connect
-from frack.responder import FrackResponder
-from frack.wiring import AMPService, JSONRPCService
+from frack.wiring import WebService
 
 class FrackService(Service):
 
-    def __init__(self, dbconnection, ampPort, jsonRPCPort, mediaPath,
-                 baseUrl, templateRoot, fakeAuth=False):
+    def __init__(self, dbconnection, webPort, mediaPath, baseUrl, templateRoot):
         self.store = DBStore(dbconnection)
-        self.responder = FrackResponder(self.store, baseUrl)
-        self.ampPort = ampPort
-        self.jsonRPCPort = jsonRPCPort
         self.mediaPath = mediaPath
         self.templateRoot = templateRoot
-        self.amp = AMPService(self.ampPort, self.responder)
-        self.jsonrpc = JSONRPCService(self.jsonRPCPort, self.responder,
-                                      self.mediaPath, self.store,
-                                      self.templateRoot, fakeAuth)
+        self.web = WebService(webPort, mediaPath, self.store, templateRoot)
 
     def startService(self):
-        self.amp.startService()
-        self.jsonrpc.startService()
+        self.web.startService()
 
 
 
 class Options(usage.Options):
     synopsis = '[frack options]'
-
-    optFlags = [
-      ['fakeauthfortesting', None, "Make authentication as simple as putting "
-                                   "the desired username in the url"],
-    ]
 
     optParameters = [['postgres_db', None, None,
                       'Name of Postgres database to connect to.'],
@@ -46,11 +31,8 @@ class Options(usage.Options):
                      ['sqlite_db', None, None,
                       'Path to SQLite database to connect to.'],
 
-                     ['amp', 'a', 'tcp:1352',
-                      'Service description for the AMP listener.'],
-
-                     ['jsonrpc', 'j', 'tcp:1353',
-                      'Service description for the JSON-RPC listener.'],
+                     ['web', 'w', 'tcp:1353',
+                      'Endpoint description for web server.'],
 
                      ['mediapath', 'p',
                       os.path.join(os.path.dirname(
@@ -65,7 +47,7 @@ class Options(usage.Options):
                       'Location of jinja2 template files.'],
     ]
 
-    longdesc = """A postmodern deconstruction of the Python web-based issue tracker."""
+    longdesc = """A post, postmodern deconstruction of the Python web-based issue tracker."""
 
 
 
@@ -82,9 +64,7 @@ def makeService(config):
         connection = sqlite_connect(config['sqlite_db'])
 
     return FrackService(dbconnection=connection,
-                        ampPort=config['amp'],
-                        jsonRPCPort=config['jsonrpc'],
+                        webPort=config['web'],
                         mediaPath=config['mediapath'],
                         baseUrl=config['baseUrl'],
-                        templateRoot=config['templates'],
-                        fakeAuth=config['fakeauthfortesting'])
+                        templateRoot=config['templates'])

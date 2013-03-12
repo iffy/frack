@@ -71,7 +71,7 @@ class TicketApp(object):
         self.store = store
         loader = FileSystemLoader(template_root)
         self.jenv = Environment(loader=loader)
-        self.jenv.globals['static_root'] = '/ui'
+        self.jenv.globals['static_root'] = '/static'
         self.jenv.filters['wikitext'] = wiki_to_html
 
 
