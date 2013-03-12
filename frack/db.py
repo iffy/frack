@@ -64,6 +64,8 @@ class TicketStore(object):
         @param data: XXX
         """
         now = int(time.time())
+        
+        # normal fields
         columns = ['type', 'component', 'severity',
                    'priority', 'owner', 'cc', 'version',
                    'milestone', 'status', 'resolution', 'summary',
@@ -76,10 +78,29 @@ class TicketStore(object):
             ('summary', data['summary']),
         ]
         for column in columns:
-            insert_data.append((column, data.get(column)))
+            insert_data.append((column, data.pop(column, None)))
         
+        # custom fields
+        custom_fields = data
+
         insert = Insert('ticket', insert_data, lastrowid=True)
-        return self.ex.run(insert)
+        d = self.ex.run(insert)
+        if custom_fields:
+            d.addCallback(self._addCustomFields, custom_fields)
+        return d
+
+
+    def _addCustomFields(self, ticket_id, data):
+        dlist = []
+        for k,v in data.items():
+            insert = Insert('ticket_custom', [
+                ('ticket', ticket_id),
+                ('name', k),
+                ('value', v),
+            ])
+            dlist.append(self.ex.run(insert))
+        d = defer.gatherResults(dlist, consumeErrors=True)
+        return d.addCallback(lambda _:ticket_id)
 
 
     def fetchTicket(self, number):

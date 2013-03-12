@@ -111,6 +111,26 @@ class TicketStoreTest(TestCase):
 
 
     @defer.inlineCallbacks
+    def test_createTicket_customFields(self):
+        """
+        You can create a ticket with custom fields
+        """
+        store = self.populatedStore()
+
+        data = {
+            'branch': 'foo',
+            'summary': 'something',
+            'launchpad_bug': '1234',
+        }
+        ticket_id = yield store.createTicket(data)
+        ticket = yield store.fetchTicket(ticket_id)
+
+        self.assertEqual(ticket['branch'], 'foo')
+        self.assertEqual(ticket['summary'], 'something')
+        self.assertEqual(ticket['launchpad_bug'], '1234')
+
+
+    @defer.inlineCallbacks
     def test_fetchTicket(self):
         """
         You can fetch existing ticket information
