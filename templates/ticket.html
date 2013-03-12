@@ -14,6 +14,7 @@
 {% endmacro %}
 
 {% block content %}
+{% if user %}Hello, {{ user|e }}{% endif %}
 <div id="content" class="ticket">
   <div id="errorbox"></div>
   <div id="ticketbox">

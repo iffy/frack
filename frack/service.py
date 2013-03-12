@@ -11,7 +11,7 @@ from frack.wiring import AMPService, JSONRPCService
 class FrackService(Service):
 
     def __init__(self, dbconnection, ampPort, jsonRPCPort, mediaPath,
-                 baseUrl, templateRoot):
+                 baseUrl, templateRoot, fakeAuth=False):
         self.store = DBStore(dbconnection)
         self.responder = FrackResponder(self.store, baseUrl)
         self.ampPort = ampPort
@@ -21,7 +21,7 @@ class FrackService(Service):
         self.amp = AMPService(self.ampPort, self.responder)
         self.jsonrpc = JSONRPCService(self.jsonRPCPort, self.responder,
                                       self.mediaPath, self.store,
-                                      self.templateRoot)
+                                      self.templateRoot, fakeAuth)
 
     def startService(self):
         self.amp.startService()
@@ -31,6 +31,11 @@ class FrackService(Service):
 
 class Options(usage.Options):
     synopsis = '[frack options]'
+
+    optFlags = [
+      ['fakeauthfortesting', None, "Make authentication as simple as putting "
+                                   "the desired username in the url"],
+    ]
 
     optParameters = [['postgres_db', None, None,
                       'Name of Postgres database to connect to.'],
@@ -81,4 +86,5 @@ def makeService(config):
                         jsonRPCPort=config['jsonrpc'],
                         mediaPath=config['mediapath'],
                         baseUrl=config['baseUrl'],
-                        templateRoot=config['templates'])
+                        templateRoot=config['templates'],
+                        fakeAuth=config['fakeauthfortesting'])

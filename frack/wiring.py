@@ -82,7 +82,10 @@ class JSONRPCService(Service):
         self.root = Resource()
         self.root.putChild('amp', JSONRPCFace(self.responder))
         self.root.putChild('ui', static.File(self.mediaPath))
-        self.root.putChild('web', TicketApp(store, templateRoot).resource())
+        # XXX for testing - make this configurable, or make a tac file, eh?
+        from frack.web import FakeAuthenticatorDontActuallyUseExceptForTesting
+        self.root.putChild('web', FakeAuthenticatorDontActuallyUseExceptForTesting(
+                           TicketApp(store, templateRoot).resource()))
         self.site = Site(self.root)
 
     def startService(self):

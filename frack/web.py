@@ -4,7 +4,7 @@
 Klein-based web service
 """
 
-from twisted.web.resource import NoResource
+from twisted.web.resource import NoResource, Resource
 from jinja2 import Environment, FileSystemLoader
 from frack.db import NotFoundError
 from klein import Klein
@@ -22,6 +22,45 @@ def wiki_to_html(data):
 
 
 
+def setUser(request, user):
+    """
+    Associate this request with a user.  This assumes that you've already done
+    authentication and that this request should, in fact, be associated with
+    the given user.
+
+    @param request: A web request
+    @param user: a string username
+    """
+    # XXX for now, I'm just putting it right on the request.  It could be
+    # improved later.
+    request.authenticated_user = user
+
+
+def getUser(request):
+    """
+    Get the already-authenticated username for this request.
+    """
+    # see setUser for why the implementation is thus
+    return getattr(request, 'authenticated_user', None)
+
+
+
+class FakeAuthenticatorDontActuallyUseExceptForTesting(Resource):
+    """
+    I provide passwordless authentication for testing.
+    """
+
+
+    def __init__(self, wrapped):
+        Resource.__init__(self)
+        self.wrapped = wrapped
+
+
+    def getChild(self, path, request):
+        setUser(request, path)
+        return self.wrapped
+
+
 
 class TicketApp(object):
 
@@ -36,8 +75,11 @@ class TicketApp(object):
         self.jenv.filters['wikitext'] = wiki_to_html
 
 
-    def render(self, name, params=None):
+    def render(self, request, name, params=None):
         params = params or {}
+        params.update({
+            'user': getUser(request),
+        })
         template = self.jenv.get_template(name)
         return template.render(params).encode('utf-8')
 
@@ -52,7 +94,7 @@ class TicketApp(object):
 
 
     def _renderTicket(self, ticket, request):
-        return self.render('ticket.html', {
+        return self.render(request, 'ticket.html', {
             'urlpath': request.URLPath(),
             'ticket': ticket,
         })
