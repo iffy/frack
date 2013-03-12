@@ -18,9 +18,7 @@
   <div id="errorbox"></div>
   <div id="ticketbox">
     <h1>
-      <span class="title">
-        Ticket #{{ ticket.id }}
-      </span>
+      <span class="title">Ticket #{{ ticket.id }}</span>
       <span class="statuses">
         <span class="type">{{ ticket.type }}</span>
         <span class="status">{{ ticket.status }}</span>
@@ -100,7 +98,7 @@
           <h2 class="comment-number">{{ comment.number }}</h2>
         </a>
         <div class="change">
-          <h3 class="change" id="#comment:{{ comment.number }}">
+          <h3 class="change" id="comment:{{ comment.number }}">
             <span class="threading">
               &nbsp;
             </span>
