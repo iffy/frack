@@ -10,6 +10,18 @@ from frack.db import NotFoundError
 from klein import Klein
 
 
+def wiki_to_html(data):
+    """
+    This should produce HTML formatted like trac formats wiki text.
+
+    XXX for now, I'm just putting WIKI in front to signal in the UI that
+    something is happening
+    """
+    import cgi
+    return '<div class="wikied">&lt;wiki&gt;' + cgi.escape(data) + '&lt;/wiki&gt;</div>'
+
+
+
 
 class TicketApp(object):
 
@@ -21,6 +33,7 @@ class TicketApp(object):
         loader = FileSystemLoader(template_root)
         self.jenv = Environment(loader=loader)
         self.jenv.globals['static_root'] = '/ui'
+        self.jenv.filters['wikitext'] = wiki_to_html
 
 
     def render(self, name, params=None):

@@ -1,16 +1,16 @@
 {% extends 'base.html' %}
 
 {% macro changeLine(change) %}
-{% if change.field == 'comment' %}
-{% elif change.field == 'description' %}
-  modified
-{% elif not change.oldvalue %}
-  set to <em>{{ change.newvalue|e }}</em>
-{% elif not change.newvalue %}
-  <em>{{ change.oldvalue|e }}</em> deleted
-{% else %}
-  changed from <em>{{ change.oldvalue|e }}</em> to <em>{{ change.newvalue|e }}</em>
-{% endif %}
+  {% if change.field == 'comment' %}
+  {% elif change.field == 'description' %}
+    modified
+  {% elif not change.oldvalue %}
+    set to <em>{{ change.newvalue|e }}</em>
+  {% elif not change.newvalue %}
+    <em>{{ change.oldvalue|e }}</em> deleted
+  {% else %}
+    changed from <em>{{ change.oldvalue|e }}</em> to <em>{{ change.newvalue|e }}</em>
+  {% endif %}
 {% endmacro %}
 
 {% block content %}
@@ -32,7 +32,7 @@
         <p>Opened {{ ticket.time }}</p>
         <p>Last modified {{ ticket.changetime }}</p>
       </div>
-      <h2 class="summary searchable">{{ ticket.summary|e }}</h2>
+      <h2 class="summary searchable">{{ ticket.summary|wikitext }}</h2>
       <table class="properties">
         <tbody><tr>
             <th id="h_reporter">Reported by:</th>
@@ -87,7 +87,7 @@
           Description
           <a title="Link to this section"
              href="#comment:description" class="anchor"> ¶</a></h3>
-        <div class="searchable">{{ ticket.description|e }}</div>
+        <div class="searchable">{{ ticket.description|wikitext }}</div>
       </div>
     </div>
   </div>
@@ -120,7 +120,7 @@
             {% endif %}
             {% endfor %}
           </ul>
-          <div class="comment searchable">{{ comment.comment|e }}</div>
+          <div class="comment searchable">{{ comment.comment|wikitext }}</div>
         </div>
       </form>
       {% endfor %}

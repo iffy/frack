@@ -113,6 +113,7 @@ class DBStore(object):
                     'changes': [],
                     'number': str(len(comments)+1),
                     'replyto': None,
+                    'comment': '',
                 }
                 comments.append(current)
             if change['field'] == 'comment':
