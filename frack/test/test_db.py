@@ -108,7 +108,6 @@ class TicketStoreTest(TestCase):
         self.assertEqual(ticket['summary'], 'summary')
         self.assertEqual(ticket['description'], 'description')
         self.assertEqual(ticket['keywords'], 'keywords')
-        
 
 
     @defer.inlineCallbacks
@@ -116,11 +115,77 @@ class TicketStoreTest(TestCase):
         """
         You can fetch existing ticket information
         """
-        ticket = yield self.store.fetchTicket(4712)
-        self.assertEqual(ticket['type'])
+        store = self.populatedStore()
+
+        ticket = yield store.fetchTicket(5622)
+
+        # look in test/trac_test.sql to see the values
+        self.assertEqual(ticket['id'], 5622)
+        self.assertEqual(ticket['type'], 'enhancement')
+        self.assertEqual(ticket['time'], 1333844383)
+        self.assertEqual(ticket['changetime'], 1334260992)
+        self.assertEqual(ticket['component'], 'core')
+        self.assertEqual(ticket['severity'], None)
+        self.assertEqual(ticket['priority'], 'normal')
+        self.assertEqual(ticket['owner'], '')
+        self.assertEqual(ticket['reporter'], 'exarkun')
+        self.assertEqual(ticket['cc'], '')
+        self.assertEqual(ticket['version'], None)
+        self.assertEqual(ticket['milestone'], '')
+        self.assertEqual(ticket['status'], 'closed')
+        self.assertEqual(ticket['resolution'], 'duplicate')
+        # ignore summary and description because they're long
+        self.assertEqual(ticket['keywords'], 'tests')
+
+        # custom fields
+        self.assertEqual(ticket['branch'], 'branches/tcp-endpoints-tests-refactor-5622')
+        self.assertEqual(ticket['branch_author'], 'exarkun')
+        self.assertEqual(ticket['launchpad_bug'], '')
 
 
+    @defer.inlineCallbacks
+    def test_fetchComments(self):
+        """
+        You can get all the comments for a ticket.
+        """
+        store = self.populatedStore()
 
+        comments = yield store.fetchComments(5622)
+
+        # look in test/trac_test.sql to see where these assertions come from
+        self.assertEqual(len(comments), 4, "There are 4 comments")
+        c = comments[0]
+        self.assertEqual(c['ticket'], 5622)
+        self.assertEqual(c['time'], 1333844456)
+        self.assertEqual(c['author'], 'exarkun')
+        self.assertEqual(c['number'], '1')
+        self.assertEqual(c['comment'], "(In [34131]) Branching to 'tcp-endpoints-tests-refactor-5622'")
+        self.assertEqual(len(c['changes']), 2)
+        self.assertIn({
+            'field': 'branch',
+            'oldvalue': '',
+            'newvalue': 'branches/tcp-endpoints-tests-refactor-5622',
+        }, c['changes'])
+        self.assertIn({
+            'field': 'branch_author',
+            'oldvalue': '',
+            'newvalue': 'exarkun',
+        }, c['changes'])
+
+
+    @defer.inlineCallbacks
+    def test_fetchComments_reply(self):
+        """
+        The comments should know that they are a reply to another comment
+        """
+        store = self.populatedStore()
+
+        comments = yield store.fetchComments(2723)
+
+        # look in test/trac_test.sql to see where these assertions come from
+        comment13 = comments[12]
+        self.assertEqual(comment13['replyto'], '12')
+        self.assertEqual(comment13['number'], '13')
 
 
 

@@ -83,6 +83,23 @@ class TicketStore(object):
 
 
     def fetchTicket(self, number):
+        """
+        Get the normal and custom columns for a ticket.  Note that this does not
+        include the changes for a ticket.
+
+        @return: A Deferred which fires back with a dict.
+        """
+        normal = self._fetchNormalColumns(number)
+        custom = self._fetchCustomColumns(number)
+        d = defer.gatherResults([normal, custom], consumeErrors=True)
+        def combine(results):
+            normal, custom = results
+            normal.update(custom)
+            return normal
+        return d.addCallback(combine)
+
+
+    def _fetchNormalColumns(self, number):
         columns = ['id', 'type', 'time', 'changetime', 'component', 'severity',
                    'priority', 'owner', 'reporter', 'cc', 'version',
                    'milestone', 'status', 'resolution', 'summary',
@@ -98,6 +115,60 @@ class TicketStore(object):
             row = rows[0]
             return dict(zip(columns, row))
         return self.ex.run(select).addCallback(firstOne)
+
+
+    def _fetchCustomColumns(self, number):
+        op = SQL('''
+            SELECT name, value
+            FROM ticket_custom
+            WHERE ticket = ?''', (number,))
+        return self.ex.run(op).addCallback(dict)
+
+
+    def fetchComments(self, number):
+        """
+        Get a list of the comments associated with a ticket.
+        """
+        op = SQL('''
+            SELECT time, author, field, oldvalue, newvalue
+            FROM ticket_change
+            WHERE ticket = ?''', (number,))
+        return self.ex.run(op).addCallback(self._groupComments, number)
+
+
+    def _groupComments(self, changes, ticket_number):
+        """
+        Group a set of changes into a list of comments.
+        """
+        ret = []
+        comment = {}
+        last = None
+        for time, author, field, oldvalue, newvalue in changes:
+            if time != last:
+                comment = {
+                    'time': time,
+                    'ticket': ticket_number,
+                    'author': author,
+                    'changes': []
+                }
+                ret.append(comment)
+            last = time
+            if field == 'comment':
+                # handle goofy in-reply-to syntax
+                number = oldvalue
+                if '.' in oldvalue:
+                    replyto, number = oldvalue.split('.')
+                    comment['replyto'] = replyto
+
+                comment['number'] = number
+                comment['comment'] = newvalue
+            else:
+                comment['changes'].append({
+                    'field': field,
+                    'oldvalue': oldvalue,
+                    'newvalue': newvalue,
+                })
+        return ret
 
 
 
