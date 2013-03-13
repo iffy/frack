@@ -3,8 +3,9 @@ from twisted.trial.unittest import TestCase
 from twisted.python.util import sibpath
 from twisted.internet import defer
 from frack.db import TicketStore, DBStore, UnauthorizedError, NotFoundError
-from norm.sqlite import SqliteSyncTranslator
-from norm.common import Executor, SyncRunner
+from norm.sqlite import SqliteTranslator
+from norm.common import BlockingRunner
+from norm.operation import SQL
 
 
 
@@ -14,10 +15,9 @@ class TicketStoreTest(TestCase):
     def populatedStore(self):
         db = sqlite3.connect(":memory:")
         db.executescript(open(sibpath(__file__, "trac_test.sql")).read())
-        translator = SqliteSyncTranslator()
-        runner = SyncRunner(db)
-        executor = Executor(translator, runner)
-        store = TicketStore(executor, user='foo')
+        translator = SqliteTranslator()
+        runner = BlockingRunner(db, translator)
+        store = TicketStore(runner, user='foo')
         return store
 
 
@@ -128,6 +128,31 @@ class TicketStoreTest(TestCase):
         self.assertEqual(ticket['branch'], 'foo')
         self.assertEqual(ticket['summary'], 'something')
         self.assertEqual(ticket['launchpad_bug'], '1234')
+
+
+    @defer.inlineCallbacks
+    def test_createTicket_customFields_fail(self):
+        """
+        If the custom fields can't be created, the whole transaction should be
+        rolled back and the ticket should not be added.
+        """
+        store = self.populatedStore()
+
+        count = yield store.runner.run(SQL('select count(*) from ticket'))
+
+        bad_data = {
+            'summary': 'good summary',
+            'branch': object(),
+        }
+        try:
+            ticket_id = yield store.createTicket(bad_data)
+        except Exception as e:
+            pass
+        else:
+            self.fail("Should have raised an exception")
+
+        after_count = yield store.runner.run(SQL('select count(*) from ticket'))
+        self.assertEqual(count, after_count, "Should NOT have created a ticket")
 
 
     @defer.inlineCallbacks

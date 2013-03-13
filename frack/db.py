@@ -49,11 +49,11 @@ class TicketStore(object):
     Abstract, authenticated access to Trac's ticket tables.
     """
 
-    def __init__(self, executor, user):
+    def __init__(self, runner, user):
         """
-        @param executor: A C{norm.common.Executor}.
+        @param runner: A C{norm.interface.IRunner}.
         """
-        self.ex = executor
+        self.runner = runner
         self.user = user
 
 
@@ -83,17 +83,13 @@ class TicketStore(object):
         for column in columns:
             insert_data.append((column, data.pop(column, None)))
         
-        # custom fields
-        custom_fields = data
-
-        # XXX the custom fields being added are in a different transaction than
-        # this Insert.  That's no bueno.  It's a limitation of the current
-        # version of norm.
-        insert = Insert('ticket', insert_data, lastrowid=True)
-        d = self.ex.run(insert)
-        if custom_fields:
-            d.addCallback(self._addCustomFields, custom_fields)
-        return d
+        def interaction(runner, insert_data, custom_fields):
+            d = runner.run(Insert('ticket', insert_data, lastrowid=True))
+            if custom_fields:
+                d.addCallback(self._addCustomFields, custom_fields)
+            return d
+        
+        return self.runner.runInteraction(interaction, insert_data, data)
 
 
     def _addCustomFields(self, ticket_id, data):
@@ -104,32 +100,32 @@ class TicketStore(object):
                 ('name', k),
                 ('value', v),
             ])
-            dlist.append(self.ex.run(insert))
+            dlist.append(self.runner.run(insert))
         d = defer.gatherResults(dlist, consumeErrors=True)
         return d.addCallback(lambda _:ticket_id)
 
 
     def fetchTicket(self, ticket_number):
         """
-        Get the normal and custom columns for a ticket.  Note that this does not
-        include the changes for a ticket.
+        Get the normal and custom columns for a ticket and all the comments.
 
         @return: A Deferred which fires back with a dict.
         """
-        # XXX these don't happen in the same transaction, so they might get
-        # data which is out of sync.  It won't be a problem most of the time,
-        # but will be really annoying whenever it is a problem.
-        normal = self._fetchNormalColumns(ticket_number)
-        custom = self._fetchCustomColumns(ticket_number)
-        d = defer.gatherResults([normal, custom], consumeErrors=True)
-        def combine(results):
-            normal, custom = results
-            normal.update(custom)
-            return normal
-        return d.addCallback(combine)
+        def interaction(runner, ticket_number):
+            normal = self._fetchNormalColumns(runner, ticket_number)
+            custom = self._fetchCustomColumns(runner, ticket_number)
+            comments = self.fetchComments(ticket_number, _runner=runner)
+            d = defer.gatherResults([normal, custom, comments], consumeErrors=True)
+            def combine(results):
+                normal, custom, comments = results
+                normal.update(custom)
+                normal['comments'] = comments
+                return normal
+            return d.addCallback(combine)
+        return self.runner.runInteraction(interaction, ticket_number)
 
 
-    def _fetchNormalColumns(self, ticket_number):
+    def _fetchNormalColumns(self, runner, ticket_number):
         columns = ['id', 'type', 'time', 'changetime', 'component', 'severity',
                    'priority', 'owner', 'reporter', 'cc', 'version',
                    'milestone', 'status', 'resolution', 'summary',
@@ -144,26 +140,28 @@ class TicketStore(object):
         def firstOne(rows):
             row = rows[0]
             return dict(zip(columns, row))
-        return self.ex.run(select).addCallback(firstOne)
+        return runner.run(select).addCallback(firstOne)
 
 
-    def _fetchCustomColumns(self, ticket_number):
+    def _fetchCustomColumns(self, runner, ticket_number):
         op = SQL('''
             SELECT name, value
             FROM ticket_custom
             WHERE ticket = ?''', (ticket_number,))
-        return self.ex.run(op).addCallback(dict)
+        return runner.run(op).addCallback(dict)
 
 
-    def fetchComments(self, ticket_number):
+    def fetchComments(self, ticket_number, _runner=None):
         """
         Get a list of the comments associated with a ticket.
         """
+        runner = _runner or self.runner
+        
         op = SQL('''
             SELECT time, author, field, oldvalue, newvalue
             FROM ticket_change
             WHERE ticket = ?''', (ticket_number,))
-        return self.ex.run(op).addCallback(self._groupComments, ticket_number)
+        return runner.run(op).addCallback(self._groupComments, ticket_number)
 
 
     def _groupComments(self, changes, ticket_number):
