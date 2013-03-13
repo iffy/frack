@@ -322,6 +322,40 @@ class TicketStoreTest(TestCase):
         self.assertEqual(changes['description'][1], 'description')
 
 
+    @defer.inlineCallbacks
+    def test_updateTicket_notComment(self):
+        """
+        If there's no comment, that's okay.
+        """
+        store = self.populatedStore()
+
+        yield store.updateTicket(5622, dict(type='type'))
+        ticket = yield store.fetchTicket(5622)
+        self.assertEqual(ticket['comments'][-1]['comment'], '')
+        self.assertEqual(ticket['comments'][-1]['changes']['type'],
+                         ('enhancement', 'type'))
+
+
+    @defer.inlineCallbacks
+    def test_updateTicket_onlyLogChanges(self):
+        """
+        Only fields that have actually changed should be logged
+        """
+        store = self.populatedStore()
+
+        data = {
+            'type': 'enhancement',
+            'component': 'new component',
+        }
+
+        yield store.updateTicket(5622, data)
+        ticket = yield store.fetchTicket(5622)
+
+        changes = ticket['comments'][-1]['changes']
+        self.assertEqual(changes['component'], ('core', 'new component'))
+        self.assertEqual(len(changes), 1, "Should only log the component")
+
+
 
 class DBStoreTest(TestCase):
     """

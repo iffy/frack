@@ -206,12 +206,14 @@ class TicketStore(object):
         return ret
 
 
-    def updateTicket(self, ticket_number, data, comment):
+    def updateTicket(self, ticket_number, data, comment=None):
         """
         Update the attributes of a ticket and maybe add a comment too.
+
+        @param data: A dict of data.
         """
         return self.runner.runInteraction(self._updateTicket, ticket_number,
-                                          data, comment)
+                                          data, comment or '')
 
     def _updateTicket(self, runner, ticket_number, data, comment):
         now = int(time.time())
@@ -234,12 +236,14 @@ class TicketStore(object):
             newvalue = data.pop(column)
             oldvalue = old_ticket[column]
             args.append(newvalue)
-            op = SQL('''
-                INSERT INTO ticket_change
-                (ticket, time, author, field, oldvalue, newvalue)
-                VALUES (?, ?, ?, ?, ?, ?)
-                ''', (ticket_number, now, self.user, column, oldvalue, newvalue))
-            dlist.append(runner.run(op))
+
+            if newvalue != oldvalue:
+                op = SQL('''
+                    INSERT INTO ticket_change
+                    (ticket, time, author, field, oldvalue, newvalue)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    ''', (ticket_number, now, self.user, column, oldvalue, newvalue))
+                dlist.append(runner.run(op))
 
         # changetime
         set_parts.append('changetime=?')
