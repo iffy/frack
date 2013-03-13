@@ -325,6 +325,19 @@ class TicketStore(object):
         return d
 
 
+    def fetchComponents(self):
+        """
+        Get a list of dicts for all the available components.
+        """
+        op = SQL('''
+            SELECT name, owner, description
+            FROM component
+            ''')
+        def makeDict(rows):
+            return [dict(zip(['name', 'owner', 'description'], x)) for x in rows]
+        return self.runner.run(op).addCallback(makeDict)
+
+
 
 
 class DBStore(object):

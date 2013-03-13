@@ -379,6 +379,22 @@ class TicketStoreTest(TestCase):
         self.assertEqual(len(changes), 1, "Should only log the component")
 
 
+    @defer.inlineCallbacks
+    def test_fetchComponents(self):
+        """
+        Should get all the values in the component table.
+        """
+        store = self.populatedStore()
+
+        components = yield store.fetchComponents()
+        self.assertEqual(components, [
+            {'name': 'conch', 'owner': '', 'description': ''},
+            {'name': 'core', 'owner': '', 'description': ''},
+            {'name': 'ftp', 'owner': '', 'description': ''},
+        ])
+
+
+
 
 class DBStoreTest(TestCase):
     """
