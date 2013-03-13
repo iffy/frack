@@ -187,6 +187,9 @@ class TicketStoreTest(TestCase):
         self.assertEqual(ticket['branch_author'], 'exarkun')
         self.assertEqual(ticket['launchpad_bug'], '')
 
+        # comments
+        self.assertEqual(len(ticket['comments']), 4)
+
 
     @defer.inlineCallbacks
     def test_fetchComments(self):
