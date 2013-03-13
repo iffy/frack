@@ -332,10 +332,25 @@ class TicketStore(object):
         op = SQL('''
             SELECT name, owner, description
             FROM component
+            ORDER BY name
             ''')
         def makeDict(rows):
             return [dict(zip(['name', 'owner', 'description'], x)) for x in rows]
         return self.runner.run(op).addCallback(makeDict)
+
+
+    def fetchMilestones(self):
+        """
+        Get a list of dicts for all the milestones.
+        """
+        columns = ['name', 'due', 'completed', 'description']
+        op = SQL('''
+            SELECT %s
+            FROM milestone
+            ''' % (','.join(columns)))
+        def makeDict(rows, columns):
+            return [dict(zip(columns, x)) for x in rows]
+        return self.runner.run(op).addCallback(makeDict, columns)
 
 
 

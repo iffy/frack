@@ -394,6 +394,23 @@ class TicketStoreTest(TestCase):
         ])
 
 
+    @defer.inlineCallbacks
+    def test_fetchMilestones(self):
+        """
+        Should get all the milestones available.
+        """
+        store = self.populatedStore()
+
+        milestones = yield store.fetchMilestones()
+        self.assertEqual(len(milestones), 4)
+        self.assertIn({
+            'name': 'not done, not due',
+            'due': None,
+            'completed': None,
+            'description': 'description',
+        }, milestones)
+
+
 
 
 class DBStoreTest(TestCase):
