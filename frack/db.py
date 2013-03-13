@@ -57,6 +57,8 @@ class TicketStore(object):
     def __init__(self, runner, user):
         """
         @param runner: A C{norm.interface.IRunner}.
+        @param user: string name of user to use as reporter when creating
+            tickets and as author when commenting/updating tickets.
         """
         self.runner = runner
         self.user = user
