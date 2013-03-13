@@ -214,6 +214,16 @@ class TicketStoreTest(TestCase):
         self.assertEqual(len(ticket['comments']), 4)
 
 
+    def test_dne(self):
+        """
+        Should fail appropriately if the ticket doesn't exist.
+        """
+        store = self.populatedStore()
+
+        self.assertFailure(store.fetchTicket(1), NotFoundError)
+        self.assertFailure(store.updateTicket(1, {}), NotFoundError)
+
+
     @defer.inlineCallbacks
     def test_fetchComments(self):
         """

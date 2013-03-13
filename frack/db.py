@@ -132,7 +132,10 @@ class TicketStore(object):
             normal.update(custom)
             normal['comments'] = comments
             return normal
-        return d.addCallback(combine)
+        def notfound(errors):
+            errors.value.subFailure.trap(NotFoundError)
+            return errors.value.subFailure
+        return d.addCallback(combine).addErrback(notfound)
         
 
 
@@ -149,6 +152,8 @@ class TicketStore(object):
             }
         select = SQL(sql, (ticket_number,))
         def firstOne(rows):
+            if not rows:
+                raise NotFoundError(ticket_number)
             row = rows[0]
             return dict(zip(columns, row))
         return runner.run(select).addCallback(firstOne)
@@ -221,7 +226,11 @@ class TicketStore(object):
         fields = ticket.addCallback(self._updateFields, runner, ticket_number,
                                     data, now)
         comment = self._addComment(runner, ticket_number, comment, now)
-        return defer.gatherResults([fields, comment])
+        d = defer.gatherResults([fields, comment], consumeErrors=True)
+        def notfound(errors):
+            errors.value.subFailure.trap(NotFoundError)
+            return errors.value.subFailure
+        return d.addErrback(notfound)
 
 
     def _updateFields(self, old_ticket, runner, ticket_number, data, now):
