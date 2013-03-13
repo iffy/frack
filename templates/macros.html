@@ -1,0 +1,34 @@
+{% macro ticket_type_select(selected) %}
+<select id="field-type" name="field_type">
+  {% for ticket_type in ticket_types %}
+  <option{{ ' selected="selected"' if ticket_type.name == selected}}>{{ ticket_type.name }}</option>
+  {% endfor %}
+</select>
+{% endmacro %}
+
+{% macro priority_select(selected) %}
+<select id="field-priority" name="field_priority">
+  {% for priority in priorities %}
+  <option{{ ' selected="selected"' if priority.name == selected}}>{{ priority.name }}</option>
+  {% endfor %}
+</select>
+{% endmacro %}
+
+{% macro milestone_select(selected=None) %}
+<select id="field-milestone" name="field_milestone">
+  <option></option>
+  <optgroup label="All of them">
+    {% for milestone in milestones %}
+    <option>{{ milestone.name|e }}</option>
+    {% endfor %}
+  </optgroup>
+</select>
+{% endmacro %}
+
+{% macro component_select(selected) %}
+<select id="field-component" name="field_component">
+  {% for component in components %}
+  <option{{ ' selected="selected"' if component.name == selected}}>{{ component.name }}</option>
+  {% endfor %}
+</select>
+{% endmacro %}

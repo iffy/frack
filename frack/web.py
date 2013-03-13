@@ -9,6 +9,8 @@ from twisted.internet import defer
 from jinja2 import Environment, FileSystemLoader
 from frack.db import NotFoundError, TicketStore
 from klein import Klein
+import json
+
 
 
 def wiki_to_html(data):
@@ -136,23 +138,30 @@ class TicketApp(object):
         # XXX return something nice when not authenticated.
         return d.addCallback(created, request)
 
+    @app.route('/users', methods=['GET'])
+    def users_GET(self, request):
+        """
+        Get a list of all the users in the system
+        """
+        # cache this, eh?
+        request.setHeader('Content-Type', 'application/json')
+        return json.dumps(['jim', 'bob', 'sam', 'joe'])
+
 
     @app.route('/ticket/<int:ticketNumber>')
     def ticket(self, request, ticketNumber):
         user = getUser(request)
         store = TicketStore(self.runner, user)
 
-        d = store.fetchTicket(ticketNumber)
-        d.addCallback(self._renderTicket, request)
-        d.addErrback(self._notFound, request)
-        return d
-
-
-    def _renderTicket(self, ticket, request):
         return self.render(request, 'ticket.html', {
-            'urlpath': request.URLPath(),
-            'ticket': ticket,
-        })
+            'ticket': store.fetchTicket(ticketNumber),
+            'components': self.getComponents(request),
+            'milestones': self.getMilestones(request),
+            'severities': self.getSeverities(request),
+            'priorities': self.getPriorities(request),
+            'resolutions': self.getResolutions(request),
+            'ticket_types': self.getTicketTypes(request),
+        }).addErrback(self._notFound)
 
 
     def _notFound(self, err, request):

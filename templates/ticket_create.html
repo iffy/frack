@@ -1,5 +1,7 @@
 {% extends 'base.html' %}
 
+{% from 'macros.html' import ticket_type_select, priority_select, milestone_select, component_select with context %}
+
 {% block content %}
 <div id="content" class="ticket">
   <h1>
@@ -33,21 +35,13 @@
             <label for="field-type">Type:</label>
           </th>
           <td class="col1">
-            <select id="field-type" name="field_type">
-              {% for ticket_type in ticket_types %}
-              <option{{ ' selected="selected"' if ticket_type.name == 'enhancement'}}>{{ ticket_type.name }}</option>
-              {% endfor %}
-            </select>
+            {{ ticket_type_select('enhancement') }}
           </td>
           <th class="col2">
             <label for="field-priority">Priority:</label>
           </th>
           <td class="col2">
-            <select id="field-priority" name="field_priority">
-              {% for priority in priorities %}
-              <option{{ ' selected="selected"' if priority.name == 'normal'}}>{{ priority.name }}</option>
-              {% endfor %}
-            </select>
+            {{ priority_select('normal') }}
           </td>
         </tr>
 
@@ -56,24 +50,13 @@
             <label for="field-milestone">Milestone:</label>
           </th>
           <td class="col1">
-            <select id="field-milestone" name="field_milestone">
-              <option></option>
-              <optgroup label="All of them">
-                {% for milestone in milestones %}
-                <option>{{ milestone.name|e }}</option>
-                {% endfor %}
-              </optgroup>
-            </select>
+            {{ milestone_select() }}
           </td>
           <th class="col2">
             <label for="field-component">Component:</label>
           </th>
           <td class="col2">
-            <select id="field-component" name="field_component">
-              {% for component in components %}
-              <option{{ ' selected="selected"' if component.name == 'core'}}>{{ component.name }}</option>
-              {% endfor %}
-            </select>
+            {{ component_select('core') }}
           </td>
         </tr>
 
@@ -127,7 +110,7 @@
             <label for="field-owner">Assign to:</label>
           </th>
           <td class="col1" colspan="3">
-            <select id="field-owner" name="field_owner"></select>
+            <select id="field-owner" name="field_owner" class="user-select"></select>
           </td>
         </tr>
       </table>

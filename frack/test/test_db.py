@@ -421,6 +421,7 @@ class TicketStoreTest(TestCase):
         priorities = yield store.fetchEnum('priority')
         self.assertEqual(priorities, [
             {'name': 'drop everything', 'value': ''},
+            {'name': 'normal', 'value': ''},
         ])
 
 

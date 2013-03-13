@@ -31,13 +31,18 @@
       </form>
       <div id="metanav" class="nav">
         <ul>
-          <li id="login-indicator" class="first">{% if user %}{{ user|e }}{% endif %}</li><li class="last"><a href="/trac/prefs">Preferences</a></li>
+          {% if user %}
+          <li class="first">logged in as {{ user|e }}</li>
+          <li><a href="/trac/logout">Logout</a></li>
+          {% endif %}
+          <li class="last"><a href="/trac/prefs">Preferences</a></li>
         </ul>
       </div>
     </div>
     <div id="main">
       <hr>
     </div>
+    <script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
     {% block content %}
     <div id="content" class="ticket">
       <div id="errorbox"></div>
@@ -46,6 +51,22 @@
       <form id="propertyform"></form>
     </div>
     {% endblock %}
-
+    <script>
+    $(function() {
+      // Load users into the <select>s that need them
+      $.ajax('{{ urlpath.child('users') }}', {
+        success: function(users) {
+          var selects = $('select.user-select');
+          // This is terribly slow for large numbers of users.  A better approach
+          // might be to just have the html returned, instead of JSON.
+          users.forEach(function(user) {
+            selects
+              .append($('<option></option>')
+              .text(user));
+          });
+        }
+      });
+    });
+    </script>
 </div>
 </body></html>
