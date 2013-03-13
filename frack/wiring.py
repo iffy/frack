@@ -69,10 +69,10 @@ class WebService(Service):
 
     @param port: An endpoint description, suitable for `serverToString`.
     """
-    def __init__(self, port, mediaPath, store, templateRoot):
+    def __init__(self, port, mediaPath, runner, templateRoot):
         self.port = port
         self.root = Resource()
-        self.root.putChild('tickets', TicketApp(store, templateRoot).resource())
+        self.root.putChild('tickets', TicketApp(runner, templateRoot).resource())
         self.root.putChild('static', static.File(mediaPath))
         self.site = Site(self.root)
 

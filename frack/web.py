@@ -6,7 +6,7 @@ Klein-based web service
 
 from twisted.web.resource import NoResource, Resource
 from jinja2 import Environment, FileSystemLoader
-from frack.db import NotFoundError
+from frack.db import NotFoundError, TicketStore
 from klein import Klein
 
 
@@ -67,8 +67,8 @@ class TicketApp(object):
     app = Klein()
 
 
-    def __init__(self, store, template_root):
-        self.store = store
+    def __init__(self, runner, template_root):
+        self.runner = runner
         loader = FileSystemLoader(template_root)
         self.jenv = Environment(loader=loader)
         self.jenv.globals['static_root'] = '/static'
@@ -86,8 +86,12 @@ class TicketApp(object):
 
     @app.route('/ticket/<int:ticketNumber>')
     def ticket(self, request, ticketNumber):
-        d = self.store.fetchTicket(ticketNumber)
-        d.addCallback(self.store.groupComments)
+        user = getUser(request)
+        print 'user', user
+        print 'runner', self.runner
+        store = TicketStore(self.runner, user)
+
+        d = store.fetchTicket(ticketNumber)
         d.addCallback(self._renderTicket, request)
         d.addErrback(self._notFound, request)
         return d

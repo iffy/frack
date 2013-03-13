@@ -6,13 +6,18 @@ from twisted.application.service import Service
 from frack.db import DBStore, sqlite_connect, postgres_probably_connect
 from frack.wiring import WebService
 
+from norm.common import BlockingRunner
+from norm.sqlite import SqliteTranslator
+from norm.postgres import PostgresTranslator
+
+
 class FrackService(Service):
 
-    def __init__(self, dbconnection, webPort, mediaPath, baseUrl, templateRoot):
-        self.store = DBStore(dbconnection)
+    def __init__(self, dbRunner, webPort, mediaPath, baseUrl, templateRoot):
+        self.dbRunner = dbRunner
         self.mediaPath = mediaPath
         self.templateRoot = templateRoot
-        self.web = WebService(webPort, mediaPath, self.store, templateRoot)
+        self.web = WebService(webPort, mediaPath, self.dbRunner, templateRoot)
 
     def startService(self):
         self.web.startService()
@@ -60,10 +65,13 @@ def makeService(config):
 
     if config['postgres_db']:
         connection = postgres_probably_connect(config['postgres_db'], config['postgres_user'])
+        translator = PostgresTranslator()
     elif config['sqlite_db']:
         connection = sqlite_connect(config['sqlite_db'])
+        translator = SqliteTranslator()
+    runner = BlockingRunner(connection[1], translator)
 
-    return FrackService(dbconnection=connection,
+    return FrackService(dbRunner=runner,
                         webPort=config['web'],
                         mediaPath=config['mediapath'],
                         baseUrl=config['baseUrl'],

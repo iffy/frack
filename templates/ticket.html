@@ -1,15 +1,15 @@
 {% extends 'base.html' %}
 
-{% macro changeLine(change) %}
-  {% if change.field == 'comment' %}
-  {% elif change.field == 'description' %}
+{% macro changeLine(name, change) %}
+  {% if name == 'comment' %}
+  {% elif name == 'description' %}
     modified
-  {% elif not change.oldvalue %}
-    set to <em>{{ change.newvalue|e }}</em>
-  {% elif not change.newvalue %}
-    <em>{{ change.oldvalue|e }}</em> deleted
+  {% elif not change[0] %}
+    set to <em>{{ change[1]|e }}</em>
+  {% elif not change[1] %}
+    <em>{{ change[0]|e }}</em> deleted
   {% else %}
-    changed from <em>{{ change.oldvalue|e }}</em> to <em>{{ change.newvalue|e }}</em>
+    changed from <em>{{ change[0]|e }}</em> to <em>{{ change[1]|e }}</em>
   {% endif %}
 {% endmacro %}
 
@@ -110,11 +110,11 @@
           <!--     <input value="Reply" title="Reply to comment 1" type="submit"> -->
           <!-- </div> -->
           <ul class="changes">
-            {% for change in comment.changes %}
-            {% if change.field != 'comment' %}
+            {% for name, change in comment.changes.items() %}
+            {% if name != 'comment' %}
               <li>
-          <strong class="column">{{ change.field }}</strong>
-                {{ changeLine(change) }}
+          <strong class="column">{{ name }}</strong>
+                {{ changeLine(name, change) }}
               </li>
             {% endif %}
             {% endfor %}
