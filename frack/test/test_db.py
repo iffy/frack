@@ -155,6 +155,18 @@ class TicketStoreTest(TestCase):
         self.assertEqual(count, after_count, "Should NOT have created a ticket")
 
 
+    def test_createTicket_noauth(self):
+        """
+        Unauthenticated users can't create tickets
+        """
+        store = self.populatedStore()
+        store.user = None
+
+        self.assertFailure(store.createTicket({
+            'summary': 'good summary',
+        }), UnauthorizedError)
+
+
     @defer.inlineCallbacks
     def test_fetchTicket(self):
         """

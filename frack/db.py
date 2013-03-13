@@ -66,6 +66,10 @@ class TicketStore(object):
 
         @return: A C{Deferred} which will fire with the newly-created ticket id.
         """
+        if not self.user:
+            return defer.fail(UnauthorizedError(
+                    "You must be logged in to create tickets"))
+        
         now = int(time.time())
         
         # normal fields
