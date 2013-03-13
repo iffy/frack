@@ -138,14 +138,16 @@ class TicketApp(object):
         # XXX return something nice when not authenticated.
         return d.addCallback(created, request)
 
+
     @app.route('/users', methods=['GET'])
     def users_GET(self, request):
         """
         Get a list of all the users in the system
         """
-        # cache this, eh?
-        request.setHeader('Content-Type', 'application/json')
-        return json.dumps(['jim', 'bob', 'sam', 'joe'])
+        # XXX cache this, eh?
+        return self.render(request, 'select.html', {
+            'options': ['jim', 'bob', 'sam', 'joe']*40000
+        })
 
 
     @app.route('/ticket/<int:ticketNumber>')

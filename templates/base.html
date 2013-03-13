@@ -55,15 +55,8 @@
     $(function() {
       // Load users into the <select>s that need them
       $.ajax('{{ urlpath.child('users') }}', {
-        success: function(users) {
-          var selects = $('select.user-select');
-          // This is terribly slow for large numbers of users.  A better approach
-          // might be to just have the html returned, instead of JSON.
-          users.forEach(function(user) {
-            selects
-              .append($('<option></option>')
-              .text(user));
-          });
+        success: function(response) {
+          var selects = $('select.user-select').append(response);
         }
       });
     });
