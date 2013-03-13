@@ -61,6 +61,18 @@ class TicketStoreTest(TestCase):
         self.assertEqual(ticket['keywords'], None)
 
 
+    def test_createTicket_status(self):
+        """
+        You can't override the status of a ticket.
+        """
+        store = self.populatedStore()
+
+        self.assertFailure(store.createTicket({
+            'summary': 'something',
+            'status': 'something',
+        }), Exception)
+
+
     @defer.inlineCallbacks
     def test_createTicket_maximal(self):
         """
@@ -79,7 +91,6 @@ class TicketStoreTest(TestCase):
             'cc': 'cc',
             'version': 'version',
             'milestone': 'milestone',
-            'status': 'status',
             'resolution': 'resolution',
             'summary': 'summary',
             'description': 'description',
@@ -145,8 +156,8 @@ class TicketStoreTest(TestCase):
             'branch': object(),
         }
         try:
-            ticket_id = yield store.createTicket(bad_data)
-        except Exception as e:
+            yield store.createTicket(bad_data)
+        except:
             pass
         else:
             self.fail("Should have raised an exception")
@@ -246,6 +257,78 @@ class TicketStoreTest(TestCase):
         comment13 = comments[12]
         self.assertEqual(comment13['replyto'], '12')
         self.assertEqual(comment13['number'], '13')
+
+
+    @defer.inlineCallbacks
+    def test_updateTicket(self):
+        """
+        You can update attributes of a ticket while making a comment
+        """
+        store = self.populatedStore()
+
+        data = {
+            'type': 'type',
+            'component': 'component',
+            'severity': 'severity',
+            'priority': 'priority',
+            'owner': 'owner',
+            'cc': 'cc',
+            'version': 'version',
+            'milestone': 'milestone',
+            'status': 'status',
+            'resolution': 'resolution',
+            'summary': 'summary',
+            'description': 'description',
+            'keywords': 'keywords',
+            'branch': 'foo',
+            'launchpad_bug': '1234',
+        }
+        comment = 'this is my new comment'
+
+        yield store.updateTicket(5622, data, comment)
+        ticket = yield store.fetchTicket(5622)
+        for k, v in data.items():
+            self.assertEqual(ticket[k], v,
+                "Expected ticket[%r] to be %r, not %r" % (k, v, ticket[k]))
+
+        self.assertEqual(ticket['comments'][-1]['comment'],
+                         'this is my new comment', "Should add a comment")
+        self.assertEqual(ticket['comments'][-1]['number'], '5')
+        self.assertEqual(ticket['comments'][-1]['author'], 'foo')
+        self.assertEqual(ticket['comments'][-1]['ticket'], 5622)
+        self.assertEqual(ticket['comments'][-1]['time'], ticket['changetime'])
+
+        # every change should be recorded, too
+        changes = ticket['comments'][-1]['changes']
+
+        # these magical values come from trac_test.sql
+        expected_changes = [
+            ('type', 'enhancement', 'type'),
+            ('component', 'core', 'component'),
+            ('severity', None, 'severity'),
+            ('priority', 'normal', 'priority'),
+            ('owner', '', 'owner'),
+            # reporter
+            ('cc', '', 'cc'),
+            ('version', None, 'version'),
+            ('milestone', '', 'milestone'),
+            ('status', 'closed', 'status'),
+            ('resolution', 'duplicate', 'resolution'),
+            # summary and description tested separately
+            ('branch', 'branches/tcp-endpoints-tests-refactor-5622',
+                'foo'),
+            ('launchpad_bug', '', '1234'),
+        ]
+        for field, old, new in expected_changes:
+            d = dict(field=field, oldvalue=old, newvalue=new)
+            self.assertIn(d, changes)
+
+        # summary and description are long an obnoxious to duplicate in the code
+        summary_change = [x for x in changes if x['field'] == 'summary'][0]
+        self.assertEqual(summary_change['newvalue'], 'summary')
+
+        description_change = [x for x in changes if x['field'] == 'description'][0]
+        self.assertEqual(description_change['newvalue'], 'description')
 
 
 
@@ -408,7 +491,7 @@ class DBStoreTest(TestCase):
                          where ticket = 4712 and name = 'branch_author'""")
         oldBranchAuthor = c.fetchall()[0][0]
         c.execute("select count(*) from ticket_change where ticket = 4712")
-        numComments = c.fetchone()[0]
+        c.fetchone()[0]
         d = store.updateTicket('a331422278bd676f3809e7a9d8600647', 4712,
                                updateData)
         def _checkDB(_):
