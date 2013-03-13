@@ -325,6 +325,10 @@ class TicketStore(object):
         return d
 
 
+    def makeDict(self, rows, columns):
+        return [dict(zip(columns, x)) for x in rows]
+
+
     def fetchComponents(self):
         """
         Get a list of dicts for all the available components.
@@ -334,9 +338,7 @@ class TicketStore(object):
             FROM component
             ORDER BY name
             ''')
-        def makeDict(rows):
-            return [dict(zip(['name', 'owner', 'description'], x)) for x in rows]
-        return self.runner.run(op).addCallback(makeDict)
+        return self.runner.run(op).addCallback(self.makeDict, ['name', 'owner', 'description'])
 
 
     def fetchMilestones(self):
@@ -348,9 +350,20 @@ class TicketStore(object):
             SELECT %s
             FROM milestone
             ''' % (','.join(columns)))
-        def makeDict(rows, columns):
-            return [dict(zip(columns, x)) for x in rows]
-        return self.runner.run(op).addCallback(makeDict, columns)
+        return self.runner.run(op).addCallback(self.makeDict, columns)
+
+
+    def fetchEnum(self, enum_type):
+        """
+        Get a list of dicts of all the enum key-value pairs for a given type.
+        """
+        columns = ['name', 'value']
+        op = SQL('''
+            SELECT %s
+            FROM "enum"
+            WHERE type = ?
+            ''' % (','.join(columns),), (enum_type,))
+        return self.runner.run(op).addCallback(self.makeDict, columns)
 
 
 

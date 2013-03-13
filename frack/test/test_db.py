@@ -411,6 +411,18 @@ class TicketStoreTest(TestCase):
         }, milestones)
 
 
+    @defer.inlineCallbacks
+    def test_fetchEnum(self):
+        """
+        Should get all the enums in the db.
+        """
+        store = self.populatedStore()
+
+        priorities = yield store.fetchEnum('priority')
+        self.assertEqual(priorities, [
+            {'name': 'drop everything', 'value': ''},
+        ])
+
 
 
 class DBStoreTest(TestCase):
