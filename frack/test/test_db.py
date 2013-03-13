@@ -262,6 +262,19 @@ class TicketStoreTest(TestCase):
 
 
     @defer.inlineCallbacks
+    def test_fetchComments_all(self):
+        """
+        All comments should have a comments item, even if it's blank.
+        """
+        store = self.populatedStore()
+
+        comments = yield store.fetchComments(4712)
+        for i,c in enumerate(comments):
+            self.assertTrue('comment' in c, c)
+            self.assertEqual(c['number'], str(i+1))
+
+
+    @defer.inlineCallbacks
     def test_updateTicket(self):
         """
         You can update attributes of a ticket while making a comment

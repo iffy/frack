@@ -189,15 +189,19 @@ class TicketStore(object):
         ret = []
         comment = {}
         last = None
+        i = 1
         for time, author, field, oldvalue, newvalue in changes:
             if time != last:
                 comment = {
                     'time': time,
                     'ticket': ticket_number,
                     'author': author,
+                    'comment': '',
+                    'number': str(i),
                     'changes': {}
                 }
                 ret.append(comment)
+                i += 1
             last = time
             if field == 'comment':
                 # handle goofy in-reply-to syntax
