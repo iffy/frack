@@ -146,7 +146,8 @@ class TicketApp(object):
         """
         # XXX cache this, eh?
         return self.render(request, 'select.html', {
-            'options': ['jim', 'bob', 'sam', 'joe']*40000
+            # the current drop down on twisteds' site has about 4000 options
+            'options': ['jim', 'bob', 'sam', 'joe']*1000
         })
 
 
