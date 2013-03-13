@@ -14,7 +14,6 @@
 {% endmacro %}
 
 {% block content %}
-{% if user %}Hello, {{ user|e }}{% endif %}
 <div id="content" class="ticket">
   <div id="errorbox"></div>
   <div id="ticketbox">
@@ -31,7 +30,7 @@
         <p>Opened {{ ticket.time }}</p>
         <p>Last modified {{ ticket.changetime }}</p>
       </div>
-      <h2 class="summary searchable">{{ ticket.summary|wikitext }}</h2>
+      <h2 class="summary searchable">{{ ticket.summary|e }}</h2>
       <table class="properties">
         <tbody><tr>
             <th id="h_reporter">Reported by:</th>
@@ -112,9 +111,9 @@
           <ul class="changes">
             {% for name, change in comment.changes.items() %}
             {% if name != 'comment' %}
-              <li>
-          <strong class="column">{{ name }}</strong>
-                {{ changeLine(name, change) }}
+              <li class="change change-{{ name }}">
+                <span class="column">{{ name }}</span>
+                <span class="changeline">{{ changeLine(name, change) }}</span>
               </li>
             {% endif %}
             {% endfor %}
@@ -124,6 +123,6 @@
       </form>
       {% endfor %}
   </div>
-  <form id="propertyform"></form>
+  <form id="propertyform">{% include 'ticket_change.html' %}</form>
 </div>
 {% endblock %}

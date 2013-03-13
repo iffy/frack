@@ -202,3 +202,10 @@ fieldset.radio label { padding-right: 1em }
     color: #ced7ae;
     display: block;
 }
+
+#changelog li.change .column {
+    font-weight: bold;
+}
+#changelog li.change .changeline {
+
+}

@@ -71,8 +71,13 @@ class WebService(Service):
     """
     def __init__(self, port, mediaPath, runner, templateRoot):
         self.port = port
+        # XXX backdoor... that's really the front door, because it's the only
+        # door.
+        from frack.web import FakeAuthenticatorDontActuallyUseExceptForTesting
         self.root = Resource()
-        self.root.putChild('tickets', TicketApp(runner, templateRoot).resource())
+        tickets = FakeAuthenticatorDontActuallyUseExceptForTesting(
+                    TicketApp(runner, templateRoot).resource())
+        self.root.putChild('tickets', tickets)
         self.root.putChild('static', static.File(mediaPath))
         self.site = Site(self.root)
 

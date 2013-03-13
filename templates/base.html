@@ -31,7 +31,7 @@
       </form>
       <div id="metanav" class="nav">
         <ul>
-          <li id="login-indicator" class="first"></li><li class="last"><a href="/trac/prefs">Preferences</a></li>
+          <li id="login-indicator" class="first">{% if user %}{{ user|e }}{% endif %}</li><li class="last"><a href="/trac/prefs">Preferences</a></li>
         </ul>
       </div>
     </div>

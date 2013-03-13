@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div id="content" class="ticket">
+  <h1>
+    <span class="title">
+      Create New Ticket
+    </span>
+  </h1>
+  <form method="post" id="propertyform">
+    <fieldset id="properties">
+      <legend>
+        Properties
+      </legend>
+      <table>
+
+        <tr>
+          <th><label for="field-summary">Summary:</label></th>
+          <td class="fullrow" colspan="3">
+            <input type="text" id="field-summary" name="field_summary" size="70" />
+          </td>
+        </tr>
+
+        <tr>
+          <th><label for="field-description">Description:</label></th>
+          <td class="fullrow" colspan="3">
+            <textarea id="field-description" name="field_description" class="wikitext" rows="10" cols="68"></textarea>
+          </td>
+        </tr>
+
+        <tr>
+          <th class="col1">
+            <label for="field-type">Type:</label>
+          </th>
+          <td class="col1">
+            <select id="field-type" name="field_type">
+              {% for ticket_type in ticket_types %}
+              <option{{ ' selected="selected"' if ticket_type.name == 'enhancement'}}>{{ ticket_type.name }}</option>
+              {% endfor %}
+            </select>
+          </td>
+          <th class="col2">
+            <label for="field-priority">Priority:</label>
+          </th>
+          <td class="col2">
+            <select id="field-priority" name="field_priority">
+              {% for priority in priorities %}
+              <option{{ ' selected="selected"' if priority.name == 'normal'}}>{{ priority.name }}</option>
+              {% endfor %}
+            </select>
+          </td>
+        </tr>
+
+        <tr>
+          <th class="col1">
+            <label for="field-milestone">Milestone:</label>
+          </th>
+          <td class="col1">
+            <select id="field-milestone" name="field_milestone">
+              <option></option>
+              <optgroup label="All of them">
+                {% for milestone in milestones %}
+                <option>{{ milestone.name|e }}</option>
+                {% endfor %}
+              </optgroup>
+            </select>
+          </td>
+          <th class="col2">
+            <label for="field-component">Component:</label>
+          </th>
+          <td class="col2">
+            <select id="field-component" name="field_component">
+              {% for component in components %}
+              <option{{ ' selected="selected"' if component.name == 'core'}}>{{ component.name }}</option>
+              {% endfor %}
+            </select>
+          </td>
+        </tr>
+
+        <tr>
+          <th class="col1">
+            <label for="field-keywords">Keywords:</label>
+          </th>
+          <td class="col1">
+            <input type="text" id="field-keywords" name="field_keywords" />
+          </td>
+          <th class="col2">
+            <label for="field-cc">Cc:</label>
+          </th>
+          <td class="col2">
+            <span>
+              <input type="text" id="field-cc" title="Space or comma delimited email addresses and usernames are accepted." name="field_cc" />
+            </span>
+          </td>
+        </tr>
+
+        <tr>
+          <th class="col1">
+            <label for="field-branch">Branch:</label>
+          </th>
+          <td class="col1">
+            <input type="text" id="field-branch" name="field_branch" value="" />
+          </td>
+          <th class="col2">
+            <label for="field-branch_author">Author:</label>
+          </th>
+          <td class="col2">
+            <input type="text" id="field-branch_author" name="field_branch_author" value="" />
+          </td>
+        </tr>
+
+        <tr>
+          <th class="col1">
+            <label for="field-launchpad_bug">Launchpad Bug:</label>
+          </th>
+          <td class="col1">
+            <input type="text" id="field-launchpad_bug" name="field_launchpad_bug" value="" />
+          </td>
+          <th class="col2">
+          </th>
+          <td class="col2">
+          </td>
+        </tr>
+
+        <tr>
+          <th class="col1">
+            <label for="field-owner">Assign to:</label>
+          </th>
+          <td class="col1" colspan="3">
+            <select id="field-owner" name="field_owner"></select>
+          </td>
+        </tr>
+      </table>
+    </fieldset>
+
+    <p>
+      <label>
+        <input type="checkbox" name="attachment" />
+        I have files to attach to this ticket
+      </label>
+    </p>
+
+    <div class="buttons">
+      <input type="hidden" name="field_status" value="new" />
+      <input type="submit" name="preview" value="Preview" /> 
+      <input type="submit" name="submit" value="Create ticket" />
+    </div>
+  </form>
+</div>
+{% endblock %}
