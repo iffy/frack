@@ -188,7 +188,7 @@ class TicketStore(object):
                     'time': time,
                     'ticket': ticket_number,
                     'author': author,
-                    'changes': []
+                    'changes': {}
                 }
                 ret.append(comment)
             last = time
@@ -202,11 +202,7 @@ class TicketStore(object):
                 comment['number'] = number
                 comment['comment'] = newvalue
             else:
-                comment['changes'].append({
-                    'field': field,
-                    'oldvalue': oldvalue,
-                    'newvalue': newvalue,
-                })
+                comment['changes'][field] = (oldvalue, newvalue)
         return ret
 
 

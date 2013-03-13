@@ -232,16 +232,8 @@ class TicketStoreTest(TestCase):
         self.assertEqual(c['number'], '1')
         self.assertEqual(c['comment'], "(In [34131]) Branching to 'tcp-endpoints-tests-refactor-5622'")
         self.assertEqual(len(c['changes']), 2)
-        self.assertIn({
-            'field': 'branch',
-            'oldvalue': '',
-            'newvalue': 'branches/tcp-endpoints-tests-refactor-5622',
-        }, c['changes'])
-        self.assertIn({
-            'field': 'branch_author',
-            'oldvalue': '',
-            'newvalue': 'exarkun',
-        }, c['changes'])
+        self.assertEqual(c['changes']['branch'], ('', 'branches/tcp-endpoints-tests-refactor-5622'))
+        self.assertEqual(c['changes']['branch_author'], ('', 'exarkun'))
 
 
     @defer.inlineCallbacks
@@ -320,15 +312,14 @@ class TicketStoreTest(TestCase):
             ('launchpad_bug', '', '1234'),
         ]
         for field, old, new in expected_changes:
-            d = dict(field=field, oldvalue=old, newvalue=new)
-            self.assertIn(d, changes)
+            expected = (old, new)
+            actual = changes[field]
+            self.assertEqual(actual, expected, "Expected %r change to"
+                             " be %r, not %r" % (field, expected, actual))
 
         # summary and description are long an obnoxious to duplicate in the code
-        summary_change = [x for x in changes if x['field'] == 'summary'][0]
-        self.assertEqual(summary_change['newvalue'], 'summary')
-
-        description_change = [x for x in changes if x['field'] == 'description'][0]
-        self.assertEqual(description_change['newvalue'], 'description')
+        self.assertEqual(changes['summary'][1], 'summary')
+        self.assertEqual(changes['description'][1], 'description')
 
 
 
