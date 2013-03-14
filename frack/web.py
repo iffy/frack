@@ -7,6 +7,8 @@ Klein-based web service
 import time
 import cgi
 from email import utils
+from datetime import datetime
+from urllib import quote_plus
 
 from jinja2 import Environment, FileSystemLoader
 
@@ -52,6 +54,64 @@ def getUser(request):
     return getattr(request, 'authenticated_user', None)
 
 
+def pl(i, singular, plural):
+    """
+    I'm sure this problem has been solved before... and probably with actual
+    i18n support :(
+    """
+    if i == 1:
+        return singular
+    return plural
+
+def relativeTime(seconds):
+    """
+    @param seconds: Seconds since epoch
+
+    @return: A string description of the relative distance from C{seconds} to
+        now.
+    """
+    diff = int(time.time()) - int(seconds)
+    if diff <= 0:
+        # actually in the future.  Should it say that instead?
+        return 'just now'
+
+    minutes = diff / 60
+    if not minutes:
+        return '%d %s ago' % (diff, pl(diff, 'second', 'seconds'))
+    hours = minutes / 60
+    if not hours:
+        return '%d %s ago' % (minutes, pl(minutes, 'minute', 'minutes'))
+    days = hours / 24
+    if not days:
+        return '%d %s ago' % (hours, pl(hours, 'hour', 'hours'))
+    weeks = days / 7
+    if not weeks:
+        return '%d %s ago' % (days, pl(days, 'day', 'days'))
+    months = days / 30
+    if not months:
+        return '%d %s ago' % (weeks, pl(weeks, 'week', 'weeks'))
+    years = days / 365
+    if not years:
+        return '%d %s ago' % (months, pl(months, 'month', 'months'))
+    decades = years / 10
+    if not decades:
+        return '%d %s ago' % (years, pl(years, 'year', 'years'))
+    return '%d %s ago' % (decades, pl(decades, 'decade', 'decades'))
+
+
+def isolikeTime(seconds):
+    """
+    @param seconds: Seconds since epoch
+    @return: A string date like this: C{"2013-03-13T20:41:49-0400"}.
+        XXX I'm not sure how to decide what timezone to use.
+    """
+    dt = datetime.fromtimestamp(seconds)
+    return dt.strftime('%Y-%m-%dT%H:%M:%S-0000')
+
+
+
+
+
 
 class FakeAuthenticatorDontActuallyUseExceptForTesting(Resource):
     """
@@ -88,6 +148,9 @@ class TicketApp(object):
         self.jenv.globals['raw_attachment_root'] = '/files'
 
         self.jenv.filters['wikitext'] = wiki_to_html
+        self.jenv.filters['ago'] = relativeTime
+        self.jenv.filters['isotime'] = isolikeTime
+        self.jenv.filters['urlencode'] = quote_plus
 
 
     def render(self, request, name, params=None):

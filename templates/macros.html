@@ -39,5 +39,5 @@
 {%- endmacro %}
 
 {% macro timeline_link(time) -%}
-<a class="timeline" href="/trac/timeline?from={{ time }}&amp;precision=second" title="{{ time }} in Timeline">{{ time }}</a>
+<a class="timeline" href="/trac/timeline?from={{ time|isotime|urlencode }}&amp;precision=second" title="{{ time|isotime }} in Timeline">{{ time|ago }}</a>
 {%- endmacro %}
