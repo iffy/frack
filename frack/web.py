@@ -81,6 +81,8 @@ class TicketApp(object):
         loader = FileSystemLoader(template_root)
         self.jenv = Environment(loader=loader)
         self.jenv.globals['static_root'] = '/static'
+        self.jenv.globals['attachment_root'] = '/trac/attachment'
+        self.jenv.globals['raw_attachment_root'] = '/trac/raw-attachment'
         self.jenv.filters['wikitext'] = wiki_to_html
 
 
@@ -179,8 +181,12 @@ class TicketApp(object):
         user = getUser(request)
         store = TicketStore(self.runner, user)
 
+        def mergeCommentsAndAttachments(ticket):
+            ticket['commentsAndAttachments'] = sorted(ticket['comments'] + ticket['attachments'], key=lambda x:x['time'])
+            return ticket
+
         return self.render(request, 'ticket.html', {
-            'ticket': store.fetchTicket(ticketNumber),
+            'ticket': store.fetchTicket(ticketNumber).addCallback(mergeCommentsAndAttachments),
             'components': self.getComponents(request),
             'milestones': self.getMilestones(request),
             'severities': self.getSeverities(request),

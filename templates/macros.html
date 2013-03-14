@@ -32,3 +32,12 @@
   {% endfor %}
 </select>
 {% endmacro %}}
+
+{% macro ticket_attachment_link(ticket_number, filename) -%}
+<a class="attachment" href="{{ attachment_root }}/ticket/{{ ticket_number }}/{{ filename|e }}" title="View attachment">{{ filename|e }}</a>
+<a class="trac-rawlink" href="{{ raw_attachment_root }}/ticket/{{ ticket_number }}/{{ filename|e }}" title="Download"><img src="{{ static_root }}/frack/resources/download.png" alt="Download"></a>
+{%- endmacro %}
+
+{% macro timeline_link(time) -%}
+<a class="timeline" href="/trac/timeline?from={{ time }}&amp;precision=second" title="{{ time }} in Timeline">{{ time }}</a>
+{%- endmacro %}
