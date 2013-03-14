@@ -59,3 +59,25 @@ class LossyExchangeTest(TestCase):
 
         d.callback('something')
         self.assertTrue(r.called)
+
+
+    def test_diable(self):
+        """
+        You can disable and enable events by name
+        """
+        x = LossyExchange()
+        a = []
+        b = []
+        x.subscribe('foo', a.append)
+        x.subscribe('bar', b.append)
+
+        x.disable('foo')
+        x.emit('foo', 'something')
+        self.assertEqual(a, [], "Should not emit because it's disabled")
+        x.emit('bar', 'something')
+        self.assertEqual(b, ['something'], "Only the named event should be "
+                         "disabled")
+
+        x.enable('foo')
+        x.emit('foo', 'something')
+        self.assertEqual(a, ['something'], "Should be enabled now")

@@ -15,6 +15,7 @@ class LossyExchange(object):
 
     def __init__(self):
         self._subscribers = defaultdict(lambda:[])
+        self._disabled = set()
 
 
     def subscribe(self, name, func):
@@ -34,6 +35,9 @@ class LossyExchange(object):
         @return: A C{Deferred} which will always callback (never errback) to
             indicate that the each subscriber acknowledged receipt or failed.
         """
+        if name in self._disabled:
+            return defer.succeed(None)
+
         def eb(err, name, func, message):
             log.msg('Delivery failed name=%r func=%r message=%r' % (
                         name, func, message))
@@ -43,4 +47,19 @@ class LossyExchange(object):
             d.addErrback(eb, name, func, message)
             dlist.append(d)
         return defer.gatherResults(dlist)
+
+
+    def disable(self, name):
+        """
+        Prevent messages from being sent to subscribers for the given event
+        name.
+        """
+        self._disabled.add(name)
+
+
+    def enable(self, name):
+        """
+        Allow message to be sent to subscribers for the given event name.
+        """
+        self._disabled.remove(name)
 
