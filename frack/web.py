@@ -4,12 +4,17 @@
 Klein-based web service
 """
 
+import time
+from email import utils
+
+from jinja2 import Environment, FileSystemLoader
+
+from klein import Klein
+
 from twisted.web.resource import NoResource, Resource
 from twisted.internet import defer
-from jinja2 import Environment, FileSystemLoader
+
 from frack.db import NotFoundError, TicketStore
-from klein import Klein
-import json
 
 
 
@@ -150,7 +155,19 @@ class TicketApp(object):
         """
         Get a list of all the users in the system
         """
-        # XXX cache this, eh?
+        # XXX this is all fake
+        last_modified = time.mktime((2001, 1, 1, 0, 0, 0, 0, 0, 0))
+
+        if_modified_since = request.getHeader('if-modified-since')
+        if if_modified_since:
+            parsed = utils.parsedate(if_modified_since)
+            if_modified_since = time.mktime(parsed)
+            if last_modified < if_modified_since:
+                request.setResponseCode(304)
+                return 'Not Modified'
+
+        # ask the client to cache this
+        request.setHeader('Last-Modified', utils.formatdate(last_modified))
         return self.render(request, 'select.html', {
             # the current drop down on twisteds' site has about 4000 options
             'options': ['jim', 'bob', 'sam', 'joe']*1000

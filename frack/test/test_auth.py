@@ -4,10 +4,9 @@ from twisted.trial.unittest import TestCase
 from twisted.cred import error
 from twisted.internet import defer
 from zope.interface.verify import verifyObject
-from mock import MagicMock
 
 
-from frack.auth import (InMemoryAuthStore, Unauthorized, TokenCredentials,
+from frack.auth import (InMemoryAuthStore, TokenCredentials,
                         ITokenCredentials, TokenChecker, User)
 
 

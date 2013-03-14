@@ -5,7 +5,7 @@ from twisted.internet import defer
 from twisted.python.failure import Failure
 from twisted.web.test.test_web import DummyRequest
 
-from frack.responder import FrackResponder, FetchTicket
+from frack.responder import FrackResponder
 from frack.wiring import (JSONRPCFace, UNKNOWN_ERROR, PARSE_ERROR,
                           METHOD_NOT_FOUND, INVALID_REQUEST)
 from frack.test.test_responder import FAKETICKET

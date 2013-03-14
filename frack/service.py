@@ -3,7 +3,7 @@
 import os, pwd, socket
 from twisted.python import usage
 from twisted.application.service import Service
-from frack.db import DBStore, sqlite_connect, postgres_probably_connect
+from frack.db import sqlite_connect, postgres_probably_connect
 from frack.wiring import WebService
 
 from norm.common import BlockingRunner

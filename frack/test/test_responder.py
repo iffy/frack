@@ -117,6 +117,6 @@ class TestCommands(unittest.TestCase):
             {"id": 123, "key": "123abc", "owner": "jethro",
              "summary": "awesome ticket", "keywords": "review"}, None)
         d = resp.locateResponder("UpdateTicket")(box)
-        response = amp._stringsToObjects(d.result, UpdateTicket.response,
+        amp._stringsToObjects(d.result, UpdateTicket.response,
                                          None)
         self.assertEqual(updates, [updateData])
