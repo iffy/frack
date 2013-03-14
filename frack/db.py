@@ -229,6 +229,8 @@ class TicketStore(object):
         @return: undefined... don't depend on it (except that errback means
             something didn't work)
         """
+        if not self.user:
+            return defer.fail(UnauthorizedError())
         return self.runner.runInteraction(self._updateTicket, ticket_number,
                                           data, comment or '')
 
@@ -402,6 +404,9 @@ class TicketStore(object):
                 'ip': '29.33.44.21',
             }
         """
+        if not self.user:
+            return defer.fail(UnauthorizedError())
+
         now = int(time.time())
         op = SQL('''
             INSERT INTO attachment

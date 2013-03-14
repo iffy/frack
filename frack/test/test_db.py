@@ -373,6 +373,17 @@ class TicketStoreTest(TestCase):
         self.assertEqual(changes['description'][1], 'description')
 
 
+    def test_updateTicket_noauth(self):
+        """
+        If you are not authenticated, you can't update tickets
+        """
+        store = self.populatedStore()
+
+        store.user = None
+        self.assertFailure(store.updateTicket(5622, {}),
+                           UnauthorizedError)
+
+
     @defer.inlineCallbacks
     def test_updateTicket_notComment(self):
         """
@@ -478,6 +489,17 @@ class TicketStoreTest(TestCase):
         self.assertEqual(att['ipnr'], '127.0.0.1')
         self.assertTrue(att['time'] >= now)
         self.assertEqual(att['author'], 'foo')
+
+
+    def test_addAttachmentMetadata_noauth(self):
+        """
+        If you are not authenticated, you can't upload.
+        """
+        store = self.populatedStore()
+
+        store.user = None
+        self.assertFailure(store.addAttachmentMetadata(5622, {}),
+                           UnauthorizedError)
 
 
 
