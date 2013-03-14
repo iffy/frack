@@ -24,6 +24,9 @@ via JSON-RPC. Persona (http://persona.org) is used for authentication.
 If you want to develop Frack, the tests can be run via 'trial
 frack.test'. For running a development server:
 
+# Install the packages listed in `requirements.txt`
+pip install -r requirements.txt
+
 # load some test data into an sqlite db
 sqlite3 < frack/test/trac_test.sql trac.db
 

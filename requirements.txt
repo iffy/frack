@@ -1,4 +1,3 @@
 Twisted
 klein
-trac==0.12
 -e git://github.com/iffy/norm.git@master#egg=norm
