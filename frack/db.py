@@ -388,6 +388,30 @@ class TicketStore(object):
         return d.addCallback(addIp)
 
 
+    def addAttachmentMetadata(self, ticket_number, data):
+        """
+        Add attachment metadata to a ticket.
+
+        @param ticket_number: The ticket number (e.g. 1234)
+        @param data: a dictionary similar to this::
+
+            {
+                'filename': 'something.diff',
+                'size': 29930,
+                'description': 'file description',
+                'ip': '29.33.44.21',
+            }
+        """
+        now = int(time.time())
+        op = SQL('''
+            INSERT INTO attachment
+            (type, id, filename, size, "time", description, author, ipnr)
+            VALUES ('ticket', ?, ?, ?, ?, ?, ?, ?)
+            ''', (ticket_number, data['filename'], data['size'], now,
+                  data['description'], self.user, data['ip']))
+        return self.runner.run(op)
+
+
 
 
 class DBStore(object):

@@ -1,4 +1,5 @@
 import sqlite3
+import time
 from twisted.trial.unittest import TestCase
 from twisted.python.util import sibpath
 from twisted.internet import defer
@@ -450,6 +451,33 @@ class TicketStoreTest(TestCase):
             {'name': 'drop everything', 'value': ''},
             {'name': 'normal', 'value': ''},
         ])
+
+
+    @defer.inlineCallbacks
+    def test_addAttachmentMetadata(self):
+        """
+        You can add attachment metadata to a ticket.
+        """
+        store = self.populatedStore()
+
+        now = int(time.time())
+
+        yield store.addAttachmentMetadata(5622, {
+            'filename': 'the file',
+            'size': 1234,
+            'description': 'this is a description',
+            'ip': '127.0.0.1',
+        })
+        ticket = yield store.fetchTicket(5622)
+        self.assertEqual(len(ticket['attachments']), 1)
+        att = ticket['attachments'][0]
+        self.assertEqual(att['filename'], 'the file')
+        self.assertEqual(att['size'], 1234)
+        self.assertEqual(att['description'], 'this is a description')
+        self.assertEqual(att['ip'], '127.0.0.1')
+        self.assertEqual(att['ipnr'], '127.0.0.1')
+        self.assertTrue(att['time'] >= now)
+        self.assertEqual(att['author'], 'foo')
 
 
 
