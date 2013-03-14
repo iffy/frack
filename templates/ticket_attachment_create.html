@@ -2,7 +2,7 @@
 
 {% block content %}
 <div id="content" class="attachment">
-  <h1>Add Attachment to <a href="..">Ticket #{{ ticket_number }}</a></h1>
+  <h1>Add Attachment to <a href="../{{ ticket_number }}">Ticket #{{ ticket_number }}</a></h1>
   <form id="attachment" method="post" enctype="multipart/form-data">
     <div class="field">
       <label>File (size limit 25 MB):<br />

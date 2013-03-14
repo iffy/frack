@@ -108,12 +108,11 @@
       </dd>
       {% endfor %}
     </dl>
-    <!-- <form method="get" action="/trac/attachment/ticket/5001/" id="attachfile">
+    <form method="get" action="{{ ticket.id }}/attachments" id="attachfile">
       <div>
-        <input type="hidden" name="action" value="new">
         <input type="submit" name="attachfilebutton" value="Attach file">
       </div>
-    </form> -->
+    </form>
   </div>
   {% endif %}
 

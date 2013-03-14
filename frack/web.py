@@ -259,6 +259,11 @@ class TicketApp(object):
 
     @app.route('/ticket/<int:ticket_number>/attachments', methods=['GET'])
     def ticket_attachment_GET(self, request, ticket_number):
+        user = getUser(request)
+        if not user:
+            request.setResponseCode(403)
+            return 'you must authenticate to upload attachments'
+
         return self.render(request, 'ticket_attachment_create.html', {
             'ticket_number': ticket_number,
         })
