@@ -128,11 +128,14 @@ class TicketStore(object):
         normal = self._fetchNormalColumns(runner, ticket_number)
         custom = self._fetchCustomColumns(runner, ticket_number)
         comments = self.fetchComments(ticket_number, _runner=runner)
-        d = defer.gatherResults([normal, custom, comments], consumeErrors=True)
+        attachments = self._fetchAttachments(runner, ticket_number)
+        d = defer.gatherResults([normal, custom, comments, attachments],
+                                consumeErrors=True)
         def combine(results):
-            normal, custom, comments = results
+            normal, custom, comments, attachments = results
             normal.update(custom)
             normal['comments'] = comments
+            normal['attachments'] = attachments
             return normal
         def notfound(errors):
             errors.value.subFailure.trap(NotFoundError)
@@ -367,6 +370,22 @@ class TicketStore(object):
             WHERE type = ?
             ''' % (','.join(columns),), (enum_type,))
         return self.runner.run(op).addCallback(self.makeDict, columns)
+
+
+    def _fetchAttachments(self, runner, ticket_number):
+        columns = ['filename', 'size', 'time', 'description', 'author', 'ipnr']
+        op = SQL('''
+            SELECT %s
+            FROM attachment
+            WHERE type = 'ticket'
+                AND id = ?
+            ''' % (','.join(columns),), (ticket_number,))
+        d = self.runner.run(op).addCallback(self.makeDict, columns)
+        def addIp(r):
+            for x in r:
+                x['ip'] = x['ipnr']
+            return r
+        return d.addCallback(addIp)
 
 
 

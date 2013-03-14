@@ -59,11 +59,12 @@ class TicketStoreTest(TestCase):
         self.assertEqual(ticket['summary'], 'the summary')
         self.assertEqual(ticket['description'], None)
         self.assertEqual(ticket['keywords'], None)
+        self.assertEqual(ticket['attachments'], [])
 
 
     def test_createTicket_status(self):
         """
-        You can't override the status of a ticket.
+        You can't override the status of a ticket while creating it.
         """
         store = self.populatedStore()
 
@@ -212,6 +213,32 @@ class TicketStoreTest(TestCase):
 
         # comments
         self.assertEqual(len(ticket['comments']), 4)
+
+        # attachments
+        self.assertEqual(len(ticket['attachments']), 0)
+
+
+    @defer.inlineCallbacks
+    def test_fetchTicket_attachments(self):
+        """
+        Attachment metadata should be included when fetching a ticket.
+        """
+        store = self.populatedStore()
+
+        ticket = yield store.fetchTicket(5517)
+
+        self.assertEqual(ticket['attachments'], [
+            {
+                'filename': '5517.diff',
+                'size': 3472,
+                'time': 1331531954,
+                'description': '',
+                'author': 'candre717',
+                'ip': '66.35.39.65',
+                # for compatibility?
+                'ipnr': '66.35.39.65',
+            }
+        ])
 
 
     def test_dne(self):
@@ -423,6 +450,7 @@ class TicketStoreTest(TestCase):
             {'name': 'drop everything', 'value': ''},
             {'name': 'normal', 'value': ''},
         ])
+
 
 
 
