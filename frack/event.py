@@ -39,8 +39,8 @@ class LossyExchange(object):
             return defer.succeed(None)
 
         def eb(err, name, func, message):
-            log.msg('Delivery failed name=%r func=%r message=%r' % (
-                        name, func, message))
+            log.msg('Delivery failed name=%r func=%r message=%r\n%s' % (
+                        name, func, message, err))
         dlist = []
         for func in self._subscribers[name]:
             d = defer.maybeDeferred(func, message)
@@ -63,3 +63,10 @@ class LossyExchange(object):
         """
         self._disabled.remove(name)
 
+
+
+_globalExchange = LossyExchange()
+subscribe = _globalExchange.subscribe
+emit = _globalExchange.emit
+disable = _globalExchange.disable
+enable = _globalExchange.enable

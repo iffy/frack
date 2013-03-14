@@ -16,8 +16,10 @@ from klein import Klein
 
 from twisted.web.resource import NoResource, Resource
 from twisted.internet import defer
+from twisted.python import log
 
 from frack.db import NotFoundError, TicketStore
+from frack.event import emit, subscribe
 
 
 
@@ -110,6 +112,10 @@ def isolikeTime(seconds):
 
 
 
+def logger(message):
+    log.msg(str(message))
+subscribe('request', logger)
+
 
 
 
@@ -129,10 +135,32 @@ class FakeAuthenticatorDontActuallyUseExceptForTesting(Resource):
         return self.wrapped
 
 
+def logTime(original):
+    name = original.__name__
+    def f(self, request, *args, **kwargs):
+        self.signal(request, name + '.start')
+        try:
+            result = original(self, request, *args, **kwargs)
+        except:
+            self.signal(request, name + '.error')
+            raise
+        else:
+            if isinstance(result, defer.Deferred):
+                def cb(x, request, msg):
+                    self.signal(request, msg)
+                    return x
+                return result.addCallbacks(cb, cb,
+                    callbackArgs=(request, name + '.end'),
+                    errbackArgs=(request, name + '.error'))
+            return result
+    f.__name__ = name
+    return f
+
 
 class TicketApp(object):
 
     app = Klein()
+    request_count = 0
 
 
     def __init__(self, runner, template_root, file_store):
@@ -153,6 +181,30 @@ class TicketApp(object):
         self.jenv.filters['urlencode'] = quote_plus
 
 
+    def reqid(self, request):
+        reqid = getattr(request, '_TicketAppCount', None)
+        if reqid is not None:
+            return reqid
+        request._TicketAppCount = str(self.request_count)
+        self.request_count += 1
+        return request._TicketAppCount
+
+    def signal(self, request, what):
+        emit('request', (self.reqid(request), request.method, request.path, what))
+
+
+    def signalAfter(self, d, request, good, bad=None):
+        bad = bad or good
+        def cb(x):
+            self.signal(request, good)
+            return x
+
+        def eb(x):
+            self.signal(request, bad)
+            return x
+        return d.addCallbacks(cb, eb)
+
+    @logTime
     def render(self, request, name, params=None):
         params = params or {}
         params.update({
@@ -177,8 +229,10 @@ class TicketApp(object):
         template = self.jenv.get_template(name)
         return template.render(params).encode('utf-8')
 
+
     @app.route('/newticket', methods=['GET'])
-    def create_GET(self, request):        
+    @logTime
+    def create_GET(self, request):
         return self.render(request, 'ticket_create.html', {
             'components': self.getComponents(request),
             'milestones': self.getMilestones(request),
@@ -189,6 +243,7 @@ class TicketApp(object):
         })
 
     @app.route('/newticket', methods=['POST'])
+    @logTime
     def create_POST(self, request):
         def one(name):
             return request.args.get(name, [''])[0]
@@ -220,6 +275,7 @@ class TicketApp(object):
 
 
     @app.route('/users', methods=['GET', 'HEAD'])
+    @logTime
     def users_GET(self, request):
         """
         Get a list of all the users in the system
@@ -244,7 +300,8 @@ class TicketApp(object):
 
 
     @app.route('/ticket/<int:ticket_number>', methods=['GET'])
-    def ticket(self, request, ticket_number):
+    @logTime
+    def ticket_GET(self, request, ticket_number):
         user = getUser(request)
         store = TicketStore(self.runner, user)
 
@@ -264,6 +321,7 @@ class TicketApp(object):
 
 
     @app.route('/ticket/<int:ticket_number>', methods=['POST'])
+    @logTime
     def ticket_POST(self, request, ticket_number):
         user = getUser(request)
         store = TicketStore(self.runner, user)
@@ -321,6 +379,7 @@ class TicketApp(object):
 
 
     @app.route('/ticket/<int:ticket_number>/attachments', methods=['GET'])
+    @logTime
     def ticket_attachment_GET(self, request, ticket_number):
         user = getUser(request)
         if not user:
@@ -333,6 +392,7 @@ class TicketApp(object):
 
 
     @app.route('/ticket/<int:ticket_number>/attachments', methods=['POST'])
+    @logTime
     def ticket_attachment_POST(self, request, ticket_number):
         user = getUser(request)        
         if not user:
