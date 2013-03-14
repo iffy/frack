@@ -27,6 +27,9 @@ class DiskFileStore(object):
             been saved to disk.
         """
         fpath = self.root.child(kind).child(id).child(filename)
-        fpath.parent().makedirs()
+        try:
+            fpath.parent().makedirs()
+        except OSError:
+            pass
         fpath.setContent(fh.read())
         return defer.succeed(fh.tell())

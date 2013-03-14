@@ -27,3 +27,7 @@ class DiskFileStoreTest(TestCase):
         self.assertEqual(root.child('ticket').child('1234').child('foo.txt').getContent(),
                          'some data')
         self.assertEqual(size, len('some data'))
+
+        # save another
+
+        yield store.put('ticket', '1234', 'bar.txt', fh)

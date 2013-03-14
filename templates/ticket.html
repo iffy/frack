@@ -24,7 +24,7 @@
       <span class="statuses">
         <span class="type">{{ ticket.type }}</span>
         <span class="status">{{ ticket.status }}</span>
-        <span class="resolution">{{ ticket.resolution }}</span>
+        {% if ticket.resolution %}<span class="resolution">{{ ticket.resolution }}</span>{% endif %}
       </span>
     </h1>
     <div id="ticket">

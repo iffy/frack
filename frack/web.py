@@ -5,6 +5,7 @@ Klein-based web service
 """
 
 import time
+import cgi
 from email import utils
 
 from jinja2 import Environment, FileSystemLoader
@@ -25,7 +26,6 @@ def wiki_to_html(data):
     XXX for now, I'm just putting WIKI in front to signal in the UI that
     something is happening
     """
-    import cgi
     return '<div class="wikied">&lt;wiki&gt;' + cgi.escape(data) + '&lt;/wiki&gt;</div>'
 
 
@@ -75,14 +75,18 @@ class TicketApp(object):
     app = Klein()
 
 
-    def __init__(self, runner, template_root):
+    def __init__(self, runner, template_root, file_store):
         self.runner = runner
+        self.file_store = file_store
         self._cache = {}
         loader = FileSystemLoader(template_root)
         self.jenv = Environment(loader=loader)
+
+        # XXX make these configurable
         self.jenv.globals['static_root'] = '/static'
-        self.jenv.globals['attachment_root'] = '/trac/attachment'
-        self.jenv.globals['raw_attachment_root'] = '/trac/raw-attachment'
+        self.jenv.globals['attachment_root'] = '/files'
+        self.jenv.globals['raw_attachment_root'] = '/files'
+
         self.jenv.filters['wikitext'] = wiki_to_html
 
 
@@ -176,8 +180,8 @@ class TicketApp(object):
         })
 
 
-    @app.route('/ticket/<int:ticketNumber>', methods=['GET'])
-    def ticket(self, request, ticketNumber):
+    @app.route('/ticket/<int:ticket_number>', methods=['GET'])
+    def ticket(self, request, ticket_number):
         user = getUser(request)
         store = TicketStore(self.runner, user)
 
@@ -186,7 +190,7 @@ class TicketApp(object):
             return ticket
 
         return self.render(request, 'ticket.html', {
-            'ticket': store.fetchTicket(ticketNumber).addCallback(mergeCommentsAndAttachments),
+            'ticket': store.fetchTicket(ticket_number).addCallback(mergeCommentsAndAttachments),
             'components': self.getComponents(request),
             'milestones': self.getMilestones(request),
             'severities': self.getSeverities(request),
@@ -196,8 +200,8 @@ class TicketApp(object):
         }).addErrback(self._notFound, request)
 
 
-    @app.route('/ticket/<int:ticketNumber>', methods=['POST'])
-    def ticket_POST(self, request, ticketNumber):
+    @app.route('/ticket/<int:ticket_number>', methods=['POST'])
+    def ticket_POST(self, request, ticket_number):
         user = getUser(request)
         store = TicketStore(self.runner, user)
 
@@ -245,12 +249,77 @@ class TicketApp(object):
             return 'not a valid action'
 
 
-        d = store.updateTicket(ticketNumber, data, comment)
-        def cb(ignore, request, ticketNumber):
-            request.redirect(str(ticketNumber))
+        d = store.updateTicket(ticket_number, data, comment)
+        def cb(ignore, request, ticket_number):
+            request.redirect(str(ticket_number))
             return ''
-        d.addCallback(cb, request, ticketNumber)
+        d.addCallback(cb, request, ticket_number)
         return d.addErrback(lambda err: 'There was an error')
+
+
+    @app.route('/ticket/<int:ticket_number>/attachments', methods=['GET'])
+    def ticket_attachment_GET(self, request, ticket_number):
+        return self.render(request, 'ticket_attachment_create.html', {
+            'ticket_number': ticket_number,
+        })
+
+
+    @app.route('/ticket/<int:ticket_number>/attachments', methods=['POST'])
+    def ticket_attachment_POST(self, request, ticket_number):
+        user = getUser(request)        
+        if not user:
+            # XXX make this nicer
+            request.setResponseCode(403)
+            return 'you must authenticate'
+
+        # XXX we should probably make sure the ticket exists
+
+        store = TicketStore(self.runner, user)
+
+        description = request.args.get('description', [''])[0]
+        ip = request.getClientIP()
+
+        # store metadata in the ticket store (database)
+        def storeMeta(size, store, ticket_number, filename, description, ip):
+            data = {
+                'filename': filename,
+                'size': size,
+                'description': description,
+                'ip': ip,
+            }
+            return store.addAttachmentMetadata(ticket_number, data)
+
+        # read file from request and save to file store (disk)
+        headers = request.getAllHeaders()
+        chunk = cgi.FieldStorage(fp=request.content,
+                                 headers=headers,
+                                 environ={
+                                    'REQUEST_METHOD':'POST',
+                                    'CONTENT_TYPE': headers['content-type'],
+                                })
+        keys = list(chunk)
+        files = [chunk[key] for key in keys if chunk[key].filename]
+        dlist = []
+        for f in files:
+            d = self.file_store.put('ticket', str(ticket_number),
+                                    f.filename, f.file)
+            d.addCallback(storeMeta, store, ticket_number, f.filename,
+                          description, ip)
+            dlist.append(d)
+        
+        def cb(response, request, ticket_number):
+            # XXX this needs better url creation code
+            request.redirect('../%d' % (ticket_number,))
+            return ''
+
+
+        def eb(err, request):
+            request.setResponseCode(400)
+            return ('Error.  Maybe there is already a file by that name on this'
+                    ' ticket?')
+
+        d = defer.gatherResults(dlist, consumeErrors=True)
+        return d.addCallback(cb, request, ticket_number).addErrback(eb, request)
 
 
     def _notFound(self, err, request):

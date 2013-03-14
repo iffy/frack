@@ -13,11 +13,13 @@ from norm.postgres import PostgresTranslator
 
 class FrackService(Service):
 
-    def __init__(self, dbRunner, webPort, mediaPath, baseUrl, templateRoot):
+    def __init__(self, dbRunner, webPort, mediaPath, baseUrl, templateRoot,
+                 fileRoot):
         self.dbRunner = dbRunner
         self.mediaPath = mediaPath
         self.templateRoot = templateRoot
-        self.web = WebService(webPort, mediaPath, self.dbRunner, templateRoot)
+        self.web = WebService(webPort, mediaPath, self.dbRunner, templateRoot,
+                              fileRoot)
 
     def startService(self):
         self.web.startService()
@@ -50,6 +52,8 @@ class Options(usage.Options):
                       os.path.join(os.path.dirname(
                     os.path.dirname(os.path.abspath(__file__))), 'templates'),
                       'Location of jinja2 template files.'],
+                     ['uploads', None, '/tmp/frackuploads',
+                      'Location where attachments are stored'],
     ]
 
     longdesc = """A post, postmodern deconstruction of the Python web-based issue tracker."""
@@ -75,4 +79,5 @@ def makeService(config):
                         webPort=config['web'],
                         mediaPath=config['mediapath'],
                         baseUrl=config['baseUrl'],
-                        templateRoot=config['templates'])
+                        templateRoot=config['templates'],
+                        fileRoot=config['uploads'])

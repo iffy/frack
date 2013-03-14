@@ -23,6 +23,9 @@ from twisted.web.resource import Resource
 from twisted.web.server import NOT_DONE_YET, Site
 
 from frack.web import TicketApp
+from frack.files import DiskFileStore
+
+
 
 class AMPFactory(ServerFactory):
     """
@@ -69,16 +72,18 @@ class WebService(Service):
 
     @param port: An endpoint description, suitable for `serverToString`.
     """
-    def __init__(self, port, mediaPath, runner, templateRoot):
+    def __init__(self, port, mediaPath, runner, templateRoot, fileRoot):
         self.port = port
         # XXX backdoor... that's really the front door, because it's the only
         # door.
         from frack.web import FakeAuthenticatorDontActuallyUseExceptForTesting
         self.root = Resource()
+        file_store = DiskFileStore(fileRoot)
         tickets = FakeAuthenticatorDontActuallyUseExceptForTesting(
-                    TicketApp(runner, templateRoot).resource())
+                    TicketApp(runner, templateRoot, file_store).resource())
         self.root.putChild('tickets', tickets)
         self.root.putChild('static', static.File(mediaPath))
+        self.root.putChild('files', static.File(fileRoot))
         self.site = Site(self.root)
 
 

@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div id="content" class="attachment">
+  <h1>Add Attachment to <a href="..">Ticket #{{ ticket_number }}</a></h1>
+  <form id="attachment" method="post" enctype="multipart/form-data">
+    <div class="field">
+      <label>File (size limit 25 MB):<br />
+        <input type="file" name="attachment">
+      </label>
+    </div>
+    <fieldset>
+      <legend>Attachment Info</legend>
+      <div class="field">
+        <label>Description of the file (optional):<br />
+          <input type="text" name="description" size="60">
+        </label>
+      </div>
+      <br />
+      <br />
+    </fieldset>
+    <p>
+      Adding a patch that changes code? Make sure it includes unit tests!
+      <a href="/trac/wiki/ReviewProcess">See the complete acceptance criteria</a>. Thanks!
+    </p>
+    <div class="buttons">
+      <input type="submit" value="Add attachment">
+    </div>
+  </form>
+</div>
+{% endblock %}
