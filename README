@@ -25,23 +25,33 @@ If you want to develop Frack, the tests can be run via 'trial
 frack.test'. For running a development server:
 
 # Install the packages listed in `requirements.txt`
-pip install -r requirements.txt
+
+    pip install -r requirements.txt
+
 
 # load some test data into an sqlite db
-sqlite3 < frack/test/trac_test.sql trac.db
+
+    sqlite3 < frack/test/trac_test.sql trac.db
+
 
 # start the server (the URL here must be the url at which you will
 # access the site)
-twistd -n frack --sqlite_db=trac.db
+
+    twistd -n frack --sqlite_db=trac.db
 
 
 # For testing, authentication is done by putting the name of the user you 
 # want to be in the url path.  Don't worry, this will be removed later.
 
+
 # To create a new ticket as the user "foo" go to:
-http://localhost:1353/tickets/foo/newticket
+
+    http://localhost:1353/tickets/foo/newticket
+
 
 # To view existing tickets as an anonymous user go to:
-http://localhost:1353/tickets//ticket/<ticket_number>
+
+    http://localhost:1353/tickets//ticket/<ticket_number>
+
 
 # Ticket numbers in the test database are: 3312, 5622, 5517, 2723, 4712.
