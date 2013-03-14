@@ -4,8 +4,7 @@
 <div class="field">
   <fieldset class="iefix">
     <label for="comment">Comment</label><br />
-    <p><textarea id="comment" name="comment" class="wikitext" rows="10" cols="78">
-    </textarea></p>
+    <p><textarea id="comment" name="comment" class="wikitext" rows="10" cols="78"></textarea></p>
   </fieldset>
 </div>
 <fieldset id="properties">
@@ -109,24 +108,20 @@
   </div>
 
   {% if ticket.status == 'closed' %}
-  
+
   <div>
     <input type="radio" id="action_reopen" name="action" value="reopen" />
     <label for="action_reopen">reopen</label>
     <span class="hint">Next status will be 'reopened'</span>
   </div>
-  
+
   {% else %}
-  
+
   <div>
     <input type="radio" id="action_resolve" name="action" value="resolve" />
     <label for="action_resolve">resolve</label>
-    as <select name="action_resolve_resolve_resolution" id="action_resolve_resolve_resolution">
-    <option selected="selected">fixed</option>
-    <option>invalid</option>
-    <option>wontfix</option>
-    <option>duplicate</option>
-    <option>worksforme</option>
+    as <select name="action_resolve_resolve_resolution" id="action_resolve_resolve_resolution">{% for resolution in resolutions %}
+    <option{{ ' selected="selected"' if resolution.name == 'fixed' }}>{{ resolution.name }}</option>{% endfor %}
   </select>
   <span class="hint">The resolution will be set. Next status will be 'closed'</span>
 </div>
@@ -134,7 +129,7 @@
   <input type="radio" id="action_reassign" name="action" value="reassign" />
   <label for="action_reassign">reassign</label>
   to <select name="action_reassign_reassign_owner"
-  id="action_reassign_reassign_owner"><option></option>
+  id="action_reassign_reassign_owner" class="user-select"><option></option>
 </select>
 </div>
 <div>
@@ -148,5 +143,5 @@
 </fieldset>
 <div class="buttons">
   <input type="button" name="preview" value="Preview" />
-  <input type="button" name="sumbit" value="Submit changes" />
+  <input type="submit" name="sumbit" value="Submit changes" />
 </div>

@@ -123,6 +123,8 @@
       </form>
       {% endfor %}
   </div>
-  <form id="propertyform">{% include 'ticket_change.html' with context %}</form>
+  {% if user %}
+  <form method="post" id="propertyform">{% include 'ticket_change.html' with context %}</form>
+  {% endif %}
 </div>
 {% endblock %}

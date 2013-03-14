@@ -222,6 +222,9 @@ class TicketStore(object):
         Update the attributes of a ticket and maybe add a comment too.
 
         @param data: A dict of data.
+
+        @return: undefined... don't depend on it (except that errback means
+            something didn't work)
         """
         return self.runner.runInteraction(self._updateTicket, ticket_number,
                                           data, comment or '')

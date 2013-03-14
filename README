@@ -29,9 +29,16 @@ sqlite3 < frack/test/trac_test.sql trac.db
 
 # start the server (the URL here must be the url at which you will
 # access the site)
-twistd -n frack --sqlite_db=trac.db -b http://localhost:1353/
+twistd -n frack --sqlite_db=trac.db
 
 
-After starting the server, you can then visit
-http://localhost:1353/ui/ticket.html?id=<ticket number>
-Ticket numbers in the test database are: 3312, 5622, 5517, 2723, 4712.
+# For testing, authentication is done by putting the name of the user you 
+# want to be in the url path.  Don't worry, this will be removed later.
+
+# To create a new ticket as the user "foo" go to:
+http://localhost:1353/tickets/foo/newticket
+
+# To view existing tickets as an anonymous user go to:
+http://localhost:1353/tickets//ticket/<ticket_number>
+
+# Ticket numbers in the test database are: 3312, 5622, 5517, 2723, 4712.

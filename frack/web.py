@@ -92,6 +92,9 @@ class TicketApp(object):
             d = defer.maybeDeferred(lambda:v).addCallback(lambda v:(k,v))
             dlist.append(d)
         d = defer.gatherResults(dlist, consumeErrors=True)
+
+        # Give me the first error, not a FirstError
+        d.addErrback(lambda err: err.value.subFailure)
         return d.addCallback(self._render, request, name)
 
 
@@ -120,7 +123,7 @@ class TicketApp(object):
             'component': one('field_component'),
             # no severity
             'priority': one('field_priority'),
-            # no owner
+            'owner': one('field_owner'),
             'cc': one('field_cc'),
             # no version
             'milestone': one('field_milestone'),
@@ -129,6 +132,9 @@ class TicketApp(object):
             'summary': one('field_summary'),
             'description': one('field_description'),
             'keywords': one('field_keywords'),
+            'branch': one('field_branch'),
+            'branch_author': one('field_branch_author'),
+            'launchpad_bug': one('field_launchpad_bug'),
         }
         store = TicketStore(self.runner, getUser(request))
         d = store.createTicket(data)
@@ -139,7 +145,7 @@ class TicketApp(object):
         return d.addCallback(created, request)
 
 
-    @app.route('/users', methods=['GET'])
+    @app.route('/users', methods=['GET', 'HEAD'])
     def users_GET(self, request):
         """
         Get a list of all the users in the system
@@ -151,7 +157,7 @@ class TicketApp(object):
         })
 
 
-    @app.route('/ticket/<int:ticketNumber>')
+    @app.route('/ticket/<int:ticketNumber>', methods=['GET'])
     def ticket(self, request, ticketNumber):
         user = getUser(request)
         store = TicketStore(self.runner, user)
@@ -164,7 +170,64 @@ class TicketApp(object):
             'priorities': self.getPriorities(request),
             'resolutions': self.getResolutions(request),
             'ticket_types': self.getTicketTypes(request),
-        }).addErrback(self._notFound)
+        }).addErrback(self._notFound, request)
+
+
+    @app.route('/ticket/<int:ticketNumber>', methods=['POST'])
+    def ticket_POST(self, request, ticketNumber):
+        user = getUser(request)
+        store = TicketStore(self.runner, user)
+
+        def one(name):
+            return request.args.get(name, [''])[0]
+        # XXX this is WET from the create handler above
+        data = {
+            'type': one('field_type'),
+            'component': one('field_component'),
+            # no severity
+            'priority': one('field_priority'),
+            # no owner
+            'cc': one('field_cc'),
+            # no version
+            'milestone': one('field_milestone'),
+            #'status': one('field_status'),
+            # no resolution
+            'summary': one('field_summary'),
+            #'description': one('field_description'),
+            'keywords': one('field_keywords'),
+            'branch': one('field_branch'),
+            'branch_author': one('field_branch_author'),
+            'launchpad_bug': one('field_launchpad_bug'),
+        }
+        comment = one('comment')
+        action = one('action')
+        if action == 'leave':
+            pass
+        elif action == 'reopen':
+            # XXX check that it's actually closed
+            data['resolution'] = ''
+            data['status'] = 'reopen'
+        elif action == 'resolve':
+            # XXX check that it's not closed
+            data['resolution'] = one('action_resolve_resolve_resolution')
+            data['status'] = 'closed'
+        elif action == 'reassign':
+            # XXX should status = 'assigned' ?
+            data['owner'] = one('action_reassign_reassign_owner')
+        elif action == 'accept':
+            data['owner'] = user
+            data['status'] = 'assigned'
+        else:
+            request.setResponseCode(400)
+            return 'not a valid action'
+
+
+        d = store.updateTicket(ticketNumber, data, comment)
+        def cb(ignore, request, ticketNumber):
+            request.redirect(str(ticketNumber))
+            return ''
+        d.addCallback(cb, request, ticketNumber)
+        return d.addErrback(lambda err: 'There was an error')
 
 
     def _notFound(self, err, request):
