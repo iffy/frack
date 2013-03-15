@@ -3,9 +3,16 @@
 <h3><a id="edit">Add/Change #{{ ticket.id }} ({{ ticket.summary|e }})</a></h3>
 <div class="field">
   <fieldset class="iefix">
-    <label for="comment">Comment</label><br />
-    <p><textarea id="comment" name="comment" class="wikitext" rows="10" cols="78"></textarea></p>
+    <label for="comment">Comment{% if replyto %} (in reply to comment {{ replyto|e }}){% endif %}</label><br />
+    <p><textarea id="comment" name="comment" class="wikitext" rows="10" cols="78">
+      {%- if replyto -%}
+      {%- set comment = ticket.comments[replyto-1] -%}
+      Replying to [comment:{{ comment.number }} {{ comment.author }}]
+{{ comment.comment|format_reply }}
+{% endif -%}
+    </textarea></p>
   </fieldset>
+  {% if replyto %}<input type="hidden" name="replyto" value="{{ replyto|e }}">{% endif %}
 </div>
 <fieldset id="properties">
   <legend>

@@ -200,6 +200,8 @@ class TicketStore(object):
                     'ticket': ticket_number,
                     'author': author,
                     'comment': '',
+                    'replyto': '',
+                    'followups': [],
                     'number': str(i),
                     'changes': {}
                 }
@@ -212,6 +214,9 @@ class TicketStore(object):
                 if '.' in oldvalue:
                     replyto, number = oldvalue.split('.')
                     comment['replyto'] = replyto
+                    original = ret[int(replyto)-1]
+                    original['followups'].append(number)
+
 
                 comment['number'] = number
                 comment['comment'] = newvalue
@@ -220,11 +225,14 @@ class TicketStore(object):
         return ret
 
 
-    def updateTicket(self, ticket_number, data, comment=None):
+    def updateTicket(self, ticket_number, data, comment=None, replyto=None):
         """
         Update the attributes of a ticket and maybe add a comment too.
 
         @param data: A dict of data.
+        @param comment: String comment if there is one
+        @param replyto: The comment number to which this comment is a reply.
+            Should be an integer >= 1.
 
         @return: undefined... don't depend on it (except that errback means
             something didn't work)
@@ -232,14 +240,14 @@ class TicketStore(object):
         if not self.user:
             return defer.fail(UnauthorizedError())
         return self.runner.runInteraction(self._updateTicket, ticket_number,
-                                          data, comment or '')
+                                          data, comment or '', replyto)
 
-    def _updateTicket(self, runner, ticket_number, data, comment):
+    def _updateTicket(self, runner, ticket_number, data, comment, replyto):
         now = int(time.time())
         ticket = self._fetchTicket(runner, ticket_number)
         fields = ticket.addCallback(self._updateFields, runner, ticket_number,
                                     data, now)
-        comment = self._addComment(runner, ticket_number, comment, now)
+        comment = self._addComment(runner, ticket_number, comment, replyto, now)
         d = defer.gatherResults([fields, comment], consumeErrors=True)
         def notfound(errors):
             errors.value.subFailure.trap(NotFoundError)
@@ -300,7 +308,7 @@ class TicketStore(object):
         return defer.gatherResults(dlist)
 
 
-    def _addComment(self, runner, ticket_number, comment, now):
+    def _addComment(self, runner, ticket_number, comment, replyto, now):
         # get id for new comment
         op = SQL('''
             SELECT oldvalue
@@ -311,6 +319,8 @@ class TicketStore(object):
             ''', (ticket_number,))
         
         def getnext(number_list):
+            # XXX there is a race condition here.  Two comments could have
+            # the same number.
             ret = 0
             for number in (x[0] for x in number_list):
                 # hooray for heterogeneous lists!
@@ -319,7 +329,10 @@ class TicketStore(object):
                 ret = max(int(number), ret)
             return ret + 1
 
-        def add(next_id, runner, ticket_number, comment, author, now):
+        def add(next_id, runner, ticket_number, comment, replyto, author, now):
+            next_id = str(next_id)
+            if replyto:
+                next_id = '%s.%s' % (replyto, next_id)
             op = SQL('''
                 INSERT INTO ticket_change
                 (ticket, time, author, field, oldvalue, newvalue)
@@ -329,7 +342,7 @@ class TicketStore(object):
 
         d = runner.run(op)
         d.addCallback(getnext)
-        d.addCallback(add, runner, ticket_number, comment, self.user, now)
+        d.addCallback(add, runner, ticket_number, comment, replyto, self.user, now)
         return d
 
 

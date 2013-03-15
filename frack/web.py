@@ -20,17 +20,8 @@ from twisted.internet import defer
 from frack.db import NotFoundError, TicketStore
 
 
-
-def wiki_to_html(data):
-    """
-    This should produce HTML formatted like trac formats wiki text.
-
-    XXX for now, I'm just putting WIKI in front to signal in the UI that
-    something is happening
-    """
-    return '<div class="wikied">&lt;wiki&gt;' + cgi.escape(data) + '&lt;/wiki&gt;</div>'
-
-
+#------------------------------------------------------------------------------
+# authentication
 
 def setUser(request, user):
     """
@@ -52,6 +43,26 @@ def getUser(request):
     """
     # see setUser for why the implementation is thus
     return getattr(request, 'authenticated_user', None)
+
+
+#------------------------------------------------------------------------------
+# Jinja filters
+
+def wiki_to_html(data):
+    """
+    This should produce HTML formatted like trac formats wiki text.
+
+    XXX for now, I'm just putting WIKI in front to signal in the UI that
+    something is happening
+    """
+    return '<div class="wikied">&lt;wiki&gt;' + cgi.escape(data) + '&lt;/wiki&gt;</div>'
+
+
+def format_reply(text):
+    """
+    I prefix each line with '> '
+    """
+    return '\n'.join(['> '+line for line in text.split('\n')])
 
 
 def pl(i, singular, plural):
@@ -148,6 +159,7 @@ class TicketApp(object):
         self.jenv.globals['raw_attachment_root'] = '/files'
 
         self.jenv.filters['wikitext'] = wiki_to_html
+        self.jenv.filters['format_reply'] = format_reply
         self.jenv.filters['ago'] = relativeTime
         self.jenv.filters['isotime'] = isolikeTime
         self.jenv.filters['urlencode'] = quote_plus
@@ -244,9 +256,13 @@ class TicketApp(object):
 
 
     @app.route('/ticket/<int:ticket_number>', methods=['GET'])
-    def ticket(self, request, ticket_number):
+    def ticket_GET(self, request, ticket_number):
         user = getUser(request)
         store = TicketStore(self.runner, user)
+
+        replyto = request.args.get('replyto', [''])[0]
+        if replyto:
+            replyto = int(replyto)
 
         def mergeCommentsAndAttachments(ticket):
             ticket['commentsAndAttachments'] = sorted(ticket['comments'] + ticket['attachments'], key=lambda x:x['time'])
@@ -254,6 +270,7 @@ class TicketApp(object):
 
         return self.render(request, 'ticket.html', {
             'ticket': store.fetchTicket(ticket_number).addCallback(mergeCommentsAndAttachments),
+            'replyto': replyto,
             'components': self.getComponents(request),
             'milestones': self.getMilestones(request),
             'severities': self.getSeverities(request),
@@ -290,6 +307,7 @@ class TicketApp(object):
             'launchpad_bug': one('field_launchpad_bug'),
         }
         comment = one('comment')
+        replyto = one('replyto')
         action = one('action')
         if action == 'leave':
             pass
@@ -312,7 +330,7 @@ class TicketApp(object):
             return 'not a valid action'
 
 
-        d = store.updateTicket(ticket_number, data, comment)
+        d = store.updateTicket(ticket_number, data, comment, replyto)
         def cb(ignore, request, ticket_number):
             request.redirect(str(ticket_number))
             return ''

@@ -1,16 +1,16 @@
 {% extends 'base.html' %}
 
 {% macro changeLine(name, change) %}
-  {% if name == 'comment' %}
-  {% elif name == 'description' %}
-    modified
-  {% elif not change[0] %}
-    set to <em>{{ change[1]|e }}</em>
-  {% elif not change[1] %}
-    <em>{{ change[0]|e }}</em> deleted
-  {% else %}
-    changed from <em>{{ change[0]|e }}</em> to <em>{{ change[1]|e }}</em>
-  {% endif %}
+{% if name == 'comment' %}
+{% elif name == 'description' %}
+modified
+{% elif not change[0] %}
+set to <em>{{ change[1]|e }}</em>
+{% elif not change[1] %}
+<em>{{ change[0]|e }}</em> deleted
+{% else %}
+changed from <em>{{ change[0]|e }}</em> to <em>{{ change[1]|e }}</em>
+{% endif %}
 {% endmacro %}
 
 {% from 'macros.html' import ticket_attachment_link, timeline_link %}
@@ -35,143 +35,145 @@
       <h2 class="summary searchable">{{ ticket.summary|e }}</h2>
       <table class="properties">
         <tbody><tr>
-            <th id="h_reporter">Reported by:</th>
-            <td headers="h_reporter" class="searchable">{{ ticket.reporter }}</td>
-            <th id="h_owner">Owned by:</th>
-            <td headers="h_owner">{{ ticket.owner }}</td>
-          </tr>
-          <tr>
-            <th id="h_priority">
-              Priority:
-            </th>
-            <td headers="h_priority">{{ ticket.priority }}</td>
-            <th id="h_milestone">
-              Milestone:
-            </th>
-            <td headers="h_milestone">
-              <a class="missing milestone"
-                 href="http://twistedmatrix.com/trac/milestone/"
-                 rel="nofollow"></a>
-            </td>
-          </tr><tr>
-            <th id="h_component">
-              Component:
-            </th>
-            <td headers="h_component">{{ ticket.component }}</td>
-            <th id="h_keywords">
-              Keywords:
-            </th>
-            <td headers="h_keywords" class="searchable">{{ ticket.keywords }}</td>
-          </tr><tr>
-            <th id="h_cc">
-              Cc:
-            </th>
-            <td headers="h_cc" class="searchable">{{ ticket.cc }}</td>
-            <th id="h_branch">
-              Branch:
-            </th>
-            <td headers="h_branch">{{ ticket.branch }}</td>
-          </tr><tr>
-            <th id="h_branch_author">
-              Author:
-            </th>
-            <td headers="h_branch_author">{{ ticket.branch_author }}</td>
-            <th id="h_launchpad_bug">
-              Launchpad Bug:
-            </th>
-            <td headers="h_launchpad_bug">{{ ticket.launchpad_bug }}</td>
-          </tr>
-      </tbody></table>
-      <div class="description">
-        <h3 id="comment:description">
-          Description
-          <a title="Link to this section"
-             href="#comment:description" class="anchor"> ¶</a></h3>
-        <div class="searchable">{{ ticket.description|wikitext }}</div>
-      </div>
+          <th id="h_reporter">Reported by:</th>
+          <td headers="h_reporter" class="searchable">{{ ticket.reporter }}</td>
+          <th id="h_owner">Owned by:</th>
+          <td headers="h_owner">{{ ticket.owner }}</td>
+        </tr>
+        <tr>
+          <th id="h_priority">
+            Priority:
+          </th>
+          <td headers="h_priority">{{ ticket.priority }}</td>
+          <th id="h_milestone">
+            Milestone:
+          </th>
+          <td headers="h_milestone">
+            <a class="missing milestone"
+            href="http://twistedmatrix.com/trac/milestone/"
+            rel="nofollow"></a>
+          </td>
+        </tr><tr>
+        <th id="h_component">
+          Component:
+        </th>
+        <td headers="h_component">{{ ticket.component }}</td>
+        <th id="h_keywords">
+          Keywords:
+        </th>
+        <td headers="h_keywords" class="searchable">{{ ticket.keywords }}</td>
+      </tr><tr>
+      <th id="h_cc">
+        Cc:
+      </th>
+      <td headers="h_cc" class="searchable">{{ ticket.cc }}</td>
+      <th id="h_branch">
+        Branch:
+      </th>
+      <td headers="h_branch">{{ ticket.branch }}</td>
+    </tr><tr>
+    <th id="h_branch_author">
+      Author:
+    </th>
+    <td headers="h_branch_author">{{ ticket.branch_author }}</td>
+    <th id="h_launchpad_bug">
+      Launchpad Bug:
+    </th>
+    <td headers="h_launchpad_bug">{{ ticket.launchpad_bug }}</td>
+  </tr>
+</tbody></table>
+<div class="description">
+  <h3 id="comment:description">
+    Description
+    <a title="Link to this section"
+    href="#comment:description" class="anchor"> ¶</a></h3>
+    <div class="searchable">{{ ticket.description|wikitext }}</div>
+  </div>
+</div>
+</div>
+
+{% if ticket.attachments %}
+<h2>Attachments</h2>
+<div id="attachments">
+  <dl class="attachments">
+    {% for attachment in ticket.attachments %}
+    <dt>
+      {{ ticket_attachment_link(ticket.id, attachment.filename) }}
+      (<span title="{{ attachment.size }} bytes">{{ attachment.size }} B</span>)
+      - added by <em>{{ attachment.author }}</em>
+      {{ timeline_link(attachment.time) }}
+    </dt>
+    <dd>
+      {{ attachment.description|wikitext }}
+    </dd>
+    {% endfor %}
+  </dl>
+  <form method="get" action="{{ ticket.id }}/attachments" id="attachfile">
+    <div>
+      <input type="submit" name="attachfilebutton" value="Attach file">
     </div>
-  </div>
+  </form>
+</div>
+{% endif %}
 
-  {% if ticket.attachments %}
-  <h2>Attachments</h2>
-  <div id="attachments">
-    <dl class="attachments">
-      {% for attachment in ticket.attachments %}
-      <dt>
-        {{ ticket_attachment_link(ticket.id, attachment.filename) }}
-        (<span title="{{ attachment.size }} bytes">{{ attachment.size }} B</span>)
-        - added by <em>{{ attachment.author }}</em>
-        {{ timeline_link(attachment.time) }}
-      </dt>
-      <dd>
-        {{ attachment.description|wikitext }}
-      </dd>
-      {% endfor %}
-    </dl>
-    <form method="get" action="{{ ticket.id }}/attachments" id="attachfile">
-      <div>
-        <input type="submit" name="attachfilebutton" value="Attach file">
-      </div>
-    </form>
-  </div>
-  {% endif %}
+<div id="changelog">
+  <h2>Change History</h2>
+  {% for thing in ticket.commentsAndAttachments %}
 
-  <div id="changelog">
-      <h2>Change History</h2>
-      {% for thing in ticket.commentsAndAttachments %}
-        
-        {% if 'comment' in thing %}
-          {% set comment = thing %}
-          <form method="get" action="#comment" class="printableform">  
-            <a href="#comment:{{ comment.number }}">
-              <h2 class="comment-number">{{ comment.number }}</h2>
-            </a>
-            <div class="change">
-              <h3 class="change" id="comment:{{ comment.number }}">
-                <span class="threading">
-                  &nbsp;
-                </span>
-                Changed {{ timeline_link(comment.time) }} by {{ comment.author }}
-                <a title="Link to this change" href="#comment:{{ comment.number }}" class="anchor"> ¶</a></h3>
-              <!-- <div class="inlinebuttons"> -->
-              <!--     <input name="replyto" value="1" type="hidden"> -->
-              <!--     <input value="Reply" title="Reply to comment 1" type="submit"> -->
-              <!-- </div> -->
-              <ul class="changes">
-                {% for name, change in comment.changes.items() %}
-                {% if name != 'comment' %}
-                  <li class="change change-{{ name }}">
-                    <span class="column">{{ name }}</span>
-                    <span class="changeline">{{ changeLine(name, change) }}</span>
-                  </li>
-                {% endif %}
-                {% endfor %}
-              </ul>
-              <div class="comment searchable">{{ comment.comment|wikitext }}</div>
-            </div>
-          </form>
-        {% else %}
-          {% set attachment = thing %}
-          <form method="get" action="#comment" class="printableform attachment">
-            <a href="#">
-              <h2 class="comment-number"></h2>
-            </a>
-            <div class="change">
-              <h3 class="change">Changed {{ timeline_link(attachment.time) }} by {{ attachment.author }}</h3>
-              <ul class="changes">
-                <li class="change">
-                  <span class="column">attachment</span>
-                  <span class="changeline">{{ ticket_attachment_link(ticket.id, attachment.filename) }} added</span>
-                </li>
-              </ul>
-              <div class="comment searchable">{{ attachment.description|wikitext }}</div>
-            </div>
-          </form>
-        {% endif %}
-      {% endfor %}
-  </div>
-  {% if user %}
-  <form method="post" id="propertyform">{% include 'ticket_change.html' with context %}</form>
-  {% endif %}
+    {% if 'comment' in thing %}
+      {% set comment = thing %}
+      <form method="get" action="#comment" class="printableform">  
+        <a href="#comment:{{ comment.number }}">
+          <h2 class="comment-number">{{ comment.number }}</h2>
+        </a>
+        <div class="change">
+          <h3 class="change" id="comment:{{ comment.number }}">
+            <span class="threading">
+              &nbsp;
+            </span>
+            Changed {{ timeline_link(comment.time) }} by {{ comment.author }}
+            <a title="Link to this change" href="#comment:{{ comment.number }}" class="anchor"> ¶</a>
+          </h3>
+          <div class="inlinebuttons">
+            <input name="replyto" value="{{ comment.number }}" type="hidden">
+            <input value="Reply" title="Reply to comment 1" type="submit">
+          </div>
+          <ul class="changes">
+            {% for name, change in comment.changes.items() %}
+            {% if name != 'comment' %}
+            <li class="change change-{{ name }}">
+              <span class="column">{{ name }}</span>
+              <span class="changeline">{{ changeLine(name, change) }}</span>
+            </li>
+            {% endif %}
+            {% endfor %}
+          </ul>
+          <div class="comment searchable">{{ comment.comment|wikitext }}</div>
+        </div>
+      </form>
+
+    {% else %}
+      {% set attachment = thing %}
+      <form method="get" action="#comment" class="printableform attachment">
+        <a href="#">
+          <h2 class="comment-number"></h2>
+        </a>
+        <div class="change">
+          <h3 class="change">Changed {{ timeline_link(attachment.time) }} by {{ attachment.author }}</h3>
+          <ul class="changes">
+            <li class="change">
+              <span class="column">attachment</span>
+              <span class="changeline">{{ ticket_attachment_link(ticket.id, attachment.filename) }} added</span>
+            </li>
+          </ul>
+          <div class="comment searchable">{{ attachment.description|wikitext }}</div>
+        </div>
+      </form>
+    {% endif %}
+  {% endfor %}
+</div>
+{% if user %}
+<form method="post" id="propertyform">{% include 'ticket_change.html' with context %}</form>
+{% endif %}
 </div>
 {% endblock %}

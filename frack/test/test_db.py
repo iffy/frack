@@ -340,6 +340,8 @@ class TicketStoreTest(TestCase):
         self.assertEqual(ticket['comments'][-1]['author'], 'foo')
         self.assertEqual(ticket['comments'][-1]['ticket'], 5622)
         self.assertEqual(ticket['comments'][-1]['time'], ticket['changetime'])
+        self.assertEqual(ticket['comments'][-1]['replyto'], '')
+        self.assertEqual(ticket['comments'][-1]['followups'], [])
 
         # every change should be recorded, too
         changes = ticket['comments'][-1]['changes']
@@ -385,7 +387,7 @@ class TicketStoreTest(TestCase):
 
 
     @defer.inlineCallbacks
-    def test_updateTicket_notComment(self):
+    def test_updateTicket_noComment(self):
         """
         If there's no comment, that's okay.
         """
@@ -396,6 +398,25 @@ class TicketStoreTest(TestCase):
         self.assertEqual(ticket['comments'][-1]['comment'], '')
         self.assertEqual(ticket['comments'][-1]['changes']['type'],
                          ('enhancement', 'type'))
+
+
+
+    @defer.inlineCallbacks
+    def test_updateTicket_reply(self):
+        """
+        You can signal that a comment is in reply to another comment
+        """
+        store = self.populatedStore()
+
+        yield store.updateTicket(5622, {}, comment='something', replyto=1)
+        ticket = yield store.fetchTicket(5622)
+        comment = ticket['comments'][-1]
+        self.assertEqual(comment['comment'], 'something')
+        self.assertEqual(comment['replyto'], '1')
+
+        original = ticket['comments'][0]
+        self.assertEqual(original['followups'], ['5'], "Should know which "
+                         "comments are followups to it")
 
 
     @defer.inlineCallbacks
