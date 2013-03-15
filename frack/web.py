@@ -51,11 +51,17 @@ def getUser(request):
 def wiki_to_html(data):
     """
     This should produce HTML formatted like trac formats wiki text.
-
-    XXX for now, I'm just putting WIKI in front to signal in the UI that
-    something is happening
     """
-    return '<div class="wikied">&lt;wiki&gt;' + cgi.escape(data) + '&lt;/wiki&gt;</div>'
+    # from http://djangosnippets.org/snippets/1047/ and we're halfway there.
+    from trac.test import EnvironmentStub, Mock, MockPerm
+    from trac.mimeview import Context
+    from trac.wiki.formatter import HtmlFormatter
+    from trac.web.href import Href
+    env = EnvironmentStub()
+    req = Mock(href=Href('/'), abs_href=Href('http://www.example.com/'),
+               authname='anonymous', perm=MockPerm(), args={})
+    context = Context.from_request(req)
+    return HtmlFormatter(env, context, data).generate()
 
 
 def format_reply(text):
