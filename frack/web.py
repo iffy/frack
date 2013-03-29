@@ -6,6 +6,8 @@ Klein-based web service
 
 import time
 import cgi
+import json
+import requests
 from email import utils
 from datetime import datetime
 from urllib import quote_plus
@@ -15,9 +17,9 @@ from jinja2 import Environment, FileSystemLoader
 from klein import Klein
 
 from twisted.web.resource import NoResource, Resource
-from twisted.internet import defer
+from twisted.internet import defer, threads
 
-from frack.db import NotFoundError, TicketStore
+from frack.db import NotFoundError, TicketStore, AuthStore, UnauthorizedError
 
 
 #------------------------------------------------------------------------------
@@ -461,6 +463,57 @@ class TicketApp(object):
         store = TicketStore(self.runner, getUser(request))
         return self.getCachedValue('ticket_types',
             store.fetchEnum, 'ticket_type')
+
+
+
+class PersonaAuthApp(object):
+
+
+    app = Klein()
+    verification_url = 'https://verifier.login.persona.org/verify'
+    cookie_name = 'trac_auth'
+
+
+    def __init__(self, runner, audience):
+        self.store = AuthStore(runner)
+        self.audience = audience
+
+
+    @app.route('/login')
+    def login(self, request):
+        # XXX since I am lame, and want to see this working right now, I'm
+        # going to use requests.  I acknowledge the lameness.
+        assertion = request.args['assertion'][0]
+        d = threads.deferToThread(self._getVerifiedEmail, assertion)
+        d.addCallback(self.store.usernameFromEmail)
+        d.addCallback(self.store.cookieFromUsername)
+        return d.addCallback(self.setTracCookie, request)
+
+
+    def _getVerifiedEmail(self, assertion):
+        """
+        Verify an assertion with the the provider.
+        """
+        data = {
+            'assertion': assertion,
+            'audience': self.audience,
+        }
+        response = requests.post(self.verification_url, data=data, verify=True)
+
+        if not response.ok:
+            raise UnauthorizedError('Verification failed')
+
+        verification_data = json.loads(response.content)
+
+        if verification_data['status'] == 'okay':
+            return verification_data['email']
+        raise UnauthorizedError('Verification failed')
+
+
+    def setTracCookie(self, cookie_value, request):
+        # XXX what kind of expiration should it have?
+        request.addCookie(self.cookie_name, cookie_value, secure=True)
+
 
 
 

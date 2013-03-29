@@ -19,7 +19,7 @@ class FrackService(Service):
         self.mediaPath = mediaPath
         self.templateRoot = templateRoot
         self.web = WebService(webPort, mediaPath, self.dbRunner, templateRoot,
-                              fileRoot)
+                              fileRoot, baseUrl)
 
     def startService(self):
         self.web.startService()

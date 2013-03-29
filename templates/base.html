@@ -34,6 +34,8 @@
           {% if user %}
           <li class="first">logged in as {{ user|e }}</li>
           <li><a href="/trac/logout">Logout</a></li>
+          {% else %}
+          <li class="first"><a class="signin-button" href="#"><img src="https://developer.mozilla.org/files/3967/plain_sign_in_black.png"></a></li>
           {% endif %}
           <li class="last"><a href="/trac/prefs">Preferences</a></li>
         </ul>
@@ -53,6 +55,32 @@
     {% endblock %}
     <script>
     $(function() {
+      // enable persona sign-in
+      $('.signin-button').click(function() {
+        navigator.id.request();
+        return false;
+      });
+      navigator.id.watch({
+        loggedInUser: null,
+        onlogin: function(assertion) {
+          $.ajax({
+            type: 'POST',
+            url: '/auth/login',
+            data: {assertion: assertion},
+            success: function() {
+              window.location.reload();
+            },
+            error: function(r) {
+              navigator.id.logout();
+              alert("Annoying error");
+            }
+          });
+        },
+        onlogout: function() {
+          
+        }
+      });
+
       // Load users into the <select>s that need them
       $.ajax('{{ urlpath.child('users') }}', {
         success: function(response) {

@@ -22,7 +22,7 @@ from twisted.web import static
 from twisted.web.resource import Resource
 from twisted.web.server import NOT_DONE_YET, Site
 
-from frack.web import TicketApp
+from frack.web import TicketApp, PersonaAuthApp
 from frack.files import DiskFileStore
 
 
@@ -72,16 +72,18 @@ class WebService(Service):
 
     @param port: An endpoint description, suitable for `serverToString`.
     """
-    def __init__(self, port, mediaPath, runner, templateRoot, fileRoot):
+    def __init__(self, port, mediaPath, runner, templateRoot, fileRoot, baseUrl):
         self.port = port
-        # XXX backdoor... that's really the front door, because it's the only
-        # door.
-        from frack.web import FakeAuthenticatorDontActuallyUseExceptForTesting
+
         self.root = Resource()
         file_store = DiskFileStore(fileRoot)
-        tickets = FakeAuthenticatorDontActuallyUseExceptForTesting(
-                    TicketApp(runner, templateRoot, file_store).resource())
+        
+        tickets = TicketApp(runner, templateRoot, file_store).resource()
         self.root.putChild('tickets', tickets)
+
+        auth = PersonaAuthApp(runner, audience=baseUrl)
+        self.root.putChild('auth', auth.app.resource())
+
         self.root.putChild('static', static.File(mediaPath))
         self.root.putChild('files', static.File(fileRoot))
         self.site = Site(self.root)
