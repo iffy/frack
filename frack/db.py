@@ -96,13 +96,13 @@ class TicketStore(object):
         def interaction(runner, insert_data, custom_fields):
             d = runner.run(Insert('ticket', insert_data, lastrowid=True))
             if custom_fields:
-                d.addCallback(self._addCustomFields, custom_fields)
+                d.addCallback(self._addCustomFields, custom_fields, runner)
             return d
         
         return self.runner.runInteraction(interaction, insert_data, data)
 
 
-    def _addCustomFields(self, ticket_id, data):
+    def _addCustomFields(self, ticket_id, data, runner):
         dlist = []
         for k,v in data.items():
             insert = Insert('ticket_custom', [
@@ -110,7 +110,7 @@ class TicketStore(object):
                 ('name', k),
                 ('value', v),
             ])
-            dlist.append(self.runner.run(insert))
+            dlist.append(runner.run(insert))
         d = defer.gatherResults(dlist, consumeErrors=True)
         return d.addCallback(lambda _:ticket_id)
 
@@ -395,7 +395,7 @@ class TicketStore(object):
             WHERE type = 'ticket'
                 AND id = ?
             ''' % (','.join(columns),), (ticket_number,))
-        d = self.runner.run(op).addCallback(self.makeDict, columns)
+        d = runner.run(op).addCallback(self.makeDict, columns)
         def addIp(r):
             for x in r:
                 x['ip'] = x['ipnr']
