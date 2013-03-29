@@ -550,6 +550,28 @@ class AuthStore(object):
         return self.runner.run(op).addCallback(parseRows)
 
 
+    def usernameFromCookie(self, cookie_value):
+        """
+        Get the username associated with an authentication cookie's value.
+
+        @param cookie_value: A value returned by L{cookieFromUsername} and
+            likely stored in the browser as the C{trac_auth} cookie.
+
+        @return: A C{Deferred} which will fire with a username or will errback
+            with C{NotFoundError} if C{cookie_value} is not a valid cookie.
+        """
+        op = SQL(
+            "SELECT name "
+            "FROM auth_cookie "
+            "WHERE cookie = ?", (cookie_value,)
+        )
+        def parseRows(rows):
+            if not rows:
+                raise NotFoundError(cookie_value)
+            return rows[0][0]
+        return self.runner.run(op).addCallback(parseRows)
+
+
 
 class DBStore(object):
     """

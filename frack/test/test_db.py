@@ -621,6 +621,20 @@ class AuthStoreTest(TestCase):
         self.assertEqual(cookie_value, value2)
 
 
+    @defer.inlineCallbacks
+    def test_usernameFromCookie(self):
+        """
+        Should return the username associated with a cookie value.
+        """
+        store = self.populatedStore()
+
+        alice_cookie = "a331422278bd676f3809e7a9d8600647"
+        username = yield store.usernameFromCookie(alice_cookie)
+        self.assertEqual(username, 'alice')
+
+        self.assertFailure(store.usernameFromCookie('dne'), NotFoundError)
+
+
 
 class DBStoreTest(TestCase):
     """
