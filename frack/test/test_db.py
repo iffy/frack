@@ -601,8 +601,24 @@ class AuthStoreTest(TestCase):
                            Collision)
 
 
+    @defer.inlineCallbacks
+    def test_cookieFromUsername(self):
+        """
+        Should get or create an auth_cookie entry.
+        """
+        store = self.populatedStore()
 
+        cookie_value = yield store.cookieFromUsername('alice')
 
+        # this magical value is found in test/trac_test.sql
+        self.assertEqual(cookie_value, "a331422278bd676f3809e7a9d8600647",
+                         "Should match the existing cookie value")
+
+        username = yield store.createUser('joe@example.com')
+        cookie_value = yield store.cookieFromUsername(username)
+        self.assertNotEqual(cookie_value, None)
+        value2 = yield store.cookieFromUsername(username)
+        self.assertEqual(cookie_value, value2)
 
 
 

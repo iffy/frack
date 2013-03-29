@@ -505,7 +505,7 @@ class AuthStore(object):
             _ = yield runner.run(SQL(
                 "INSERT INTO session "
                 "(sid, authenticated, last_visit) "
-                "VALUES (?, ?, ?)", (username, True, time.time())
+                "VALUES (?, ?, ?)", (username, True, int(time.time()))
             ))
             _ = yield runner.run(SQL(
                 "INSERT INTO session_attribute "
@@ -516,12 +516,38 @@ class AuthStore(object):
         d.addCallback(lambda _: username)
 
         def eb(err, username):
-            # probably an IntegrityError?
+            # probably an IntegrityError?  What's a better way to do this?
             raise Collision(username)
         d.addErrback(eb, username)
 
         return d
 
+
+    def cookieFromUsername(self, username):
+        """
+        Translate a username into a cookie value, creating it if an existing
+        cookie value doesn't already exist.
+
+        @param username: Username to get cookie value for.
+
+        @return: A C{Deferred} which will fire with a cookie value (string).
+        """
+        op = SQL(
+            "SELECT cookie "
+            "FROM auth_cookie "
+            "WHERE name = ?", (username,)
+        )
+        def parseRows(rows):
+            if not rows:
+                value = hashlib.sha1(os.urandom(16)).hexdigest()
+                op = SQL(
+                    "INSERT INTO auth_cookie "
+                    "(cookie, name, ipnr, time) "
+                    "VALUES (?, ?, '', ?)", (value, username, int(time.time()))
+                )
+                return self.runner.run(op).addCallback(lambda _:value)
+            return rows[0][0]
+        return self.runner.run(op).addCallback(parseRows)
 
 
 
