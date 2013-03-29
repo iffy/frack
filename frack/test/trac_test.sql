@@ -641,9 +641,9 @@ CREATE TABLE attachment (type text not null, id text not null, filename text not
 INSERT INTO "attachment" VALUES('ticket','5517','5517.diff',3472,1331531954,'','candre717','66.35.39.65');
 create table auth_cookie (cookie text, name text, ipnr text, time int);
 INSERT INTO "auth_cookie" values('a331422278bd676f3809e7a9d8600647','alice','',1336068159);
-create table session (sid text, authenticated bool, last_visit int);
+create table session (sid text, authenticated bool, last_visit int, PRIMARY KEY (sid, authenticated));
 INSERT INTO "session" values ('alice',1,1336068158);
-create table session_attribute (sid text, authenticated bool, name text, value text);
+create table session_attribute (sid text, authenticated bool, name text, value text, PRIMARY KEY (sid, authenticated, name));
 INSERT INTO "session_attribute" values('alice',1,'email','alice@example.com');
 CREATE TABLE component (name text not null, owner text, description text, primary key (name));
 INSERT INTO "component" VALUES('core', '', '');
