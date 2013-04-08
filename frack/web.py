@@ -8,12 +8,9 @@ import time
 import cgi
 import json
 import requests
-import json
 from email import utils
 from datetime import datetime
 from urllib import quote_plus
-
-from jinja2 import Environment, FileSystemLoader
 
 from klein import Klein
 
