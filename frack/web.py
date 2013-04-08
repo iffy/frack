@@ -8,6 +8,7 @@ import time
 import cgi
 import json
 import requests
+import json
 from email import utils
 from datetime import datetime
 from urllib import quote_plus
@@ -17,6 +18,7 @@ from jinja2 import Environment, FileSystemLoader
 from klein import Klein
 
 from twisted.web.resource import NoResource, Resource
+from twisted.web.util import DeferredResource
 from twisted.internet import defer, threads
 
 from frack.db import NotFoundError, TicketStore, AuthStore, UnauthorizedError
@@ -24,6 +26,42 @@ from frack.db import NotFoundError, TicketStore, AuthStore, UnauthorizedError
 
 #------------------------------------------------------------------------------
 # authentication
+
+class TracAuthWrapper(Resource):
+
+
+    def __init__(self, store, child):
+        """
+        @param store: An AuthStore instance.
+        @param child: The resource being wrapped.
+        """
+        Resource.__init__(self)
+        self.store = store
+        self.child = child
+
+
+    def render(self, request):
+        d = self._associateUser(request)
+        return DeferredResource(d).render(request)
+
+
+    def getChildWithDefault(self, path, request):
+        request.postpath.insert(0, request.prepath.pop())
+        d = self._associateUser(request)
+        return DeferredResource(d)
+
+
+    @defer.inlineCallbacks
+    def _associateUser(self, request):
+        cookie_value = request.getCookie('trac_auth')
+        try:
+            username = yield self.store.usernameFromCookie(cookie_value)
+            setUser(request, username)
+        except NotFoundError:
+            setUser(request, None)
+        defer.returnValue(self.child)
+
+
 
 def setUser(request, user):
     """
@@ -45,6 +83,72 @@ def getUser(request):
     """
     # see setUser for why the implementation is thus
     return getattr(request, 'authenticated_user', None)
+
+
+def setEmail(email, request):
+    """
+    Associate an already-authenticated email address with this
+    request's session.
+    """
+    session = request.getSession()
+    # XXX very bad, do sessions the right way, eh?
+    session.persona_email = email
+    return email
+
+
+def getEmail(request):
+    """
+    Get the already-authenticated email address associated with this
+    request.
+    """
+    session = request.getSession()
+    return getattr(session, 'persona_email', None)
+
+
+#------------------------------------------------------------------------------
+# rendering
+
+
+class Renderer(object):
+
+
+    def __init__(self, jinja_env):
+        self.jinja_env = jinja_env
+        self.jinja_env.globals['static_root'] = '/static'
+        self.jinja_env.globals['attachment_root'] = '/files'
+        self.jinja_env.globals['raw_attachment_root'] = '/files'
+
+        self.jinja_env.filters['wikitext'] = wiki_to_html
+        self.jinja_env.filters['format_reply'] = format_reply
+        self.jinja_env.filters['ago'] = relativeTime
+        self.jinja_env.filters['isotime'] = isolikeTime
+        self.jinja_env.filters['urlencode'] = quote_plus
+
+
+    def render(self, request, name, params=None):
+        params = params or {}
+        params.update({
+            'user': getUser(request),
+            'urlpath': request.URLPath(),
+            'logged_in_email': getEmail(request),
+        })
+        dlist = []
+        for k,v in list(params.items()):
+            # I'm just making them all deferred so that the list is homogeneous.
+            # If it's slowing things down too much, then fix it.
+            d = defer.maybeDeferred(lambda:v).addCallback(lambda v:(k,v))
+            dlist.append(d)
+        d = defer.gatherResults(dlist, consumeErrors=True)
+
+        # Give me the first error, not a FirstError
+        d.addErrback(lambda err: err.value.subFailure)
+        return d.addCallback(self._render, request, name)
+
+
+    def _render(self, items, request, name):
+        params = dict(items)
+        template = self.jinja_env.get_template(name)
+        return template.render(params).encode('utf-8')
 
 
 #------------------------------------------------------------------------------
@@ -148,48 +252,16 @@ class TicketApp(object):
     app = Klein()
 
 
-    def __init__(self, runner, template_root, file_store):
+    def __init__(self, runner, renderer, file_store):
         self.runner = runner
         self.file_store = file_store
         self._cache = {}
-        loader = FileSystemLoader(template_root)
-        self.jenv = Environment(loader=loader)
-
-        # XXX make these configurable
-        self.jenv.globals['static_root'] = '/static'
-        self.jenv.globals['attachment_root'] = '/files'
-        self.jenv.globals['raw_attachment_root'] = '/files'
-
-        self.jenv.filters['wikitext'] = wiki_to_html
-        self.jenv.filters['format_reply'] = format_reply
-        self.jenv.filters['ago'] = relativeTime
-        self.jenv.filters['isotime'] = isolikeTime
-        self.jenv.filters['urlencode'] = quote_plus
+        self.renderer = renderer
 
 
-    def render(self, request, name, params=None):
-        params = params or {}
-        params.update({
-            'user': getUser(request),
-            'urlpath': request.URLPath(),
-        })
-        dlist = []
-        for k,v in list(params.items()):
-            # I'm just making them all deferred so that the list is homogeneous.
-            # If it's slowing things down too much, then fix it.
-            d = defer.maybeDeferred(lambda:v).addCallback(lambda v:(k,v))
-            dlist.append(d)
-        d = defer.gatherResults(dlist, consumeErrors=True)
+    def render(self, *args, **kwargs):
+        return self.renderer.render(*args, **kwargs)
 
-        # Give me the first error, not a FirstError
-        d.addErrback(lambda err: err.value.subFailure)
-        return d.addCallback(self._render, request, name)
-
-
-    def _render(self, items, request, name):
-        params = dict(items)
-        template = self.jenv.get_template(name)
-        return template.render(params).encode('utf-8')
 
     @app.route('/newticket', methods=['GET'])
     def create_GET(self, request):        
@@ -472,11 +544,17 @@ class PersonaAuthApp(object):
     app = Klein()
     verification_url = 'https://verifier.login.persona.org/verify'
     cookie_name = 'trac_auth'
+    secure_cookie = True
 
 
-    def __init__(self, runner, audience):
+    def __init__(self, runner, renderer, audience):
         self.store = AuthStore(runner)
         self.audience = audience
+        self.renderer = renderer
+
+
+    def render(self, *args, **kwargs):
+        return self.renderer.render(*args, **kwargs)
 
 
     @app.route('/login')
@@ -485,9 +563,12 @@ class PersonaAuthApp(object):
         # going to use requests.  I acknowledge the lameness.
         assertion = request.args['assertion'][0]
         d = threads.deferToThread(self._getVerifiedEmail, assertion)
-        d.addCallback(self.store.usernameFromEmail)
-        d.addCallback(self.store.cookieFromUsername)
-        return d.addCallback(self.setTracCookie, request)
+        d.addCallback(setEmail, request)
+        
+        d.addCallbacks(self.store.usernameFromEmail)
+        d.addCallbacks(self._logThemIn, self._emailNotInUse,
+                       callbackArgs=(request,), errbackArgs=(request,))
+        return d
 
 
     def _getVerifiedEmail(self, assertion):
@@ -510,9 +591,69 @@ class PersonaAuthApp(object):
         raise UnauthorizedError('Verification failed')
 
 
+    def _emailNotInUse(self, err, request):
+        """
+        This person has authenticated using an email address that isn't
+        being used yet.
+        """
+        err.trap(NotFoundError)
+        request.setHeader('content-type', 'application/json')
+        return json.dumps({
+            'email': getEmail(request),
+            'user': None,
+        }).encode('utf-8')
+
+
+    def _logThemIn(self, username, request):
+        setUser(request, username)
+        d = self.store.cookieFromUsername(username)
+        return d.addCallback(self.setTracCookie, request)
+
+
     def setTracCookie(self, cookie_value, request):
         # XXX what kind of expiration should it have?
-        request.addCookie(self.cookie_name, cookie_value, secure=True)
+        # XXX add httponly
+        request.addCookie(self.cookie_name, cookie_value.encode('utf-8'),
+                          path='/',
+                          secure=self.secure_cookie)
+        request.setHeader('content-type', 'application/json')
+        return json.dumps({
+            'email': getEmail(request),
+            'user': getUser(request),
+        }).encode('utf-8')
+
+
+    @app.route('/register', methods=['GET'])
+    def register_GET(self, request):
+        return self.render(request, 'register.html')
+
+
+    @app.route('/register', methods=['POST'])
+    def register_POST(self, request):
+        username = request.args['username'][0]
+        email = getEmail(request)
+        if not email:
+            request.setResponseCode(401)
+            return 'You need to sign in with your email address'
+        
+        d = self.store.createUser(email, username)
+        return d.addCallback(self.registered, request)
+
+
+    def registered(self, username, request):
+        setUser(request, username)
+        request.redirect('/tickets/newticket')
+
+
+    @app.route('/logout')
+    def logout(self, request):
+        setEmail(None, request)
+        setUser(request, None)
+        request.addCookie(self.cookie_name, '', path='/', secure=self.secure_cookie)
+        return 'logged out'
+
+
+
 
 
 

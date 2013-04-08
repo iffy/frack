@@ -14,12 +14,12 @@ from norm.postgres import PostgresTranslator
 class FrackService(Service):
 
     def __init__(self, dbRunner, webPort, mediaPath, baseUrl, templateRoot,
-                 fileRoot):
+                 fileRoot, secureCookies):
         self.dbRunner = dbRunner
         self.mediaPath = mediaPath
         self.templateRoot = templateRoot
         self.web = WebService(webPort, mediaPath, self.dbRunner, templateRoot,
-                              fileRoot, baseUrl)
+                              fileRoot, baseUrl, secureCookies)
 
     def startService(self):
         self.web.startService()
@@ -75,9 +75,12 @@ def makeService(config):
         translator = SqliteTranslator()
     runner = BlockingRunner(connection[1], translator)
 
+    secureCookies = config['baseUrl'].startswith('https')
+
     return FrackService(dbRunner=runner,
                         webPort=config['web'],
                         mediaPath=config['mediapath'],
                         baseUrl=config['baseUrl'],
                         templateRoot=config['templates'],
-                        fileRoot=config['uploads'])
+                        fileRoot=config['uploads'],
+                        secureCookies=secureCookies)

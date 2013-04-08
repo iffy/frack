@@ -33,7 +33,7 @@
         <ul>
           {% if user %}
           <li class="first">logged in as {{ user|e }}</li>
-          <li><a href="/trac/logout">Logout</a></li>
+          <li><a href="#" class="signout-button">Logout</a></li>
           {% else %}
           <li class="first"><a class="signin-button" href="#"><img src="https://developer.mozilla.org/files/3967/plain_sign_in_black.png"></a></li>
           {% endif %}
@@ -60,24 +60,41 @@
         navigator.id.request();
         return false;
       });
+      $('.signout-button').click(function() {
+        navigator.id.logout();
+        return false;
+      });
       navigator.id.watch({
-        loggedInUser: null,
+        loggedInUser: {% if logged_in_email %}'{{ logged_in_email|e }}'{% else %}null{% endif %},
         onlogin: function(assertion) {
           $.ajax({
             type: 'POST',
             url: '/auth/login',
             data: {assertion: assertion},
-            success: function() {
-              window.location.reload();
+            success: function(r) {
+              if (!r.user) {
+                // not registered
+                window.location = '/auth/register';
+              } else {
+                // authenticated with a registered user
+                window.location.reload();
+              }
             },
             error: function(r) {
               navigator.id.logout();
-              alert("Annoying error");
             }
           });
         },
         onlogout: function() {
-          
+          $.ajax({
+            type: 'GET',
+            url: '/auth/logout',
+            success: function() {
+              window.location.reload();
+            },
+            error: function() {
+            }
+          });
         }
       });
 

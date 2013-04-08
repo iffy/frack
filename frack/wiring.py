@@ -22,7 +22,10 @@ from twisted.web import static
 from twisted.web.resource import Resource
 from twisted.web.server import NOT_DONE_YET, Site
 
-from frack.web import TicketApp, PersonaAuthApp
+from jinja2 import FileSystemLoader, Environment
+
+from frack.db import AuthStore
+from frack.web import TicketApp, PersonaAuthApp, Renderer, TracAuthWrapper
 from frack.files import DiskFileStore
 
 
@@ -72,17 +75,28 @@ class WebService(Service):
 
     @param port: An endpoint description, suitable for `serverToString`.
     """
-    def __init__(self, port, mediaPath, runner, templateRoot, fileRoot, baseUrl):
+    def __init__(self, port, mediaPath, runner, templateRoot, fileRoot, baseUrl,
+                 secureCookies=True):
         self.port = port
 
         self.root = Resource()
         file_store = DiskFileStore(fileRoot)
+
+        loader = FileSystemLoader(templateRoot)
+        jinja_env = Environment(loader=loader)
+        renderer = Renderer(jinja_env)
+
+        auth_store = AuthStore(runner)
         
-        tickets = TicketApp(runner, templateRoot, file_store).resource()
+        tickets = TracAuthWrapper(auth_store,
+                    TicketApp(runner, renderer, file_store).resource())
         self.root.putChild('tickets', tickets)
 
-        auth = PersonaAuthApp(runner, audience=baseUrl)
-        self.root.putChild('auth', auth.app.resource())
+        auth_app = PersonaAuthApp(runner, renderer, audience=baseUrl)
+        auth_app.secure_cookie = secureCookies
+
+        auth = TracAuthWrapper(auth_store, auth_app.app.resource())
+        self.root.putChild('auth', auth)
 
         self.root.putChild('static', static.File(mediaPath))
         self.root.putChild('files', static.File(fileRoot))
