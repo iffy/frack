@@ -3,6 +3,11 @@
 {% from 'macros.html' import ticket_type_select, priority_select, milestone_select, component_select with context %}
 
 {% block content %}
+{% if not user %}
+<div id="content" class="ticket">
+  You must sign in before you can create a ticket.
+</div>
+{% else %}
 <div id="content" class="ticket">
   <h1>
     <span class="title">
@@ -130,4 +135,5 @@
     </div>
   </form>
 </div>
+{% endif %}
 {% endblock %}

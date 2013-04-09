@@ -16,6 +16,12 @@ class NotFoundError(Exception):
     """
 
 
+class Collision(Exception):
+    """
+    If something is already occupying the space you want.
+    """
+
+
 def postgres_probably_connect(name, username):
     """
     Connect to postgres or die trying.
@@ -56,7 +62,8 @@ class TicketStore(object):
 
     def __init__(self, runner, user):
         """
-        @param runner: A C{norm.interface.IRunner}.
+        @param runner: A C{norm.interface.IRunner} (which is how I connect to
+            the database).
         @param user: string name of user to use as reporter when creating
             tickets and as author when commenting/updating tickets.
         """
@@ -429,6 +436,140 @@ class TicketStore(object):
                   data['description'], self.user, data['ip']))
         return self.runner.run(op)
 
+
+
+class AuthStore(object):
+    """
+    Access to the authentication/session portion of Trac's SQL database.
+
+    @param runner: A C{norm.interface.IRunner} (which how I connect to the 
+        database).
+    """
+
+    def __init__(self, runner):
+        self.runner = runner
+
+
+    def usernameFromEmail(self, email):
+        """
+        Translate an email address to a username if possible.
+
+        @param email: The email address.
+
+        @return: A C{Deferred} firing with the username (string) associated
+            with the C{email}.  This will errback with L{NotFoundError} if
+            there is no association for the email address.
+        """
+        op = SQL('''
+            SELECT sid
+            FROM session_attribute
+            WHERE
+                name = 'email'
+                AND authenticated = ?
+                AND value = ?''', (True, email))
+        def parseRows(rows):
+            if not rows:
+                raise NotFoundError('No username for email %r' % (email,))
+            return rows[0][0]
+        return self.runner.run(op).addCallback(parseRows)
+
+
+    def createUser(self, email, username=None):
+        """
+        Create a "user" with an associated email address.
+
+        @param email: An email address.
+        @param username: The username to use.  If C{None} is provided, the
+            C{email} will be used as the username.
+
+        @return: A C{Deferred} firing with C{username} on success.
+        """
+        username = username or email
+
+        @defer.inlineCallbacks
+        def interaction(runner, email, username):            
+            # make sure there's no association of the email address with a 
+            # different username
+            rows = yield runner.run(SQL(
+                "SELECT sid "
+                "FROM session_attribute "
+                "WHERE "
+                    "sid <> ? "
+                    "AND authenticated = ? "
+                    "AND name = ? "
+                    "AND value = ?", (username, True, u'email', email)
+            ))
+            if rows:
+                raise Collision(username)
+
+            _ = yield runner.run(SQL(
+                "INSERT INTO session "
+                "(sid, authenticated, last_visit) "
+                "VALUES (?, ?, ?)", (username, True, int(time.time()))
+            ))
+            _ = yield runner.run(SQL(
+                "INSERT INTO session_attribute "
+                "(sid, authenticated, name, value) "
+                "VALUES (?, ?, ?, ?)", (username, True, u'email', email)
+            ))
+        d = self.runner.runInteraction(interaction, email, username)
+        d.addCallback(lambda _: username)
+
+        def eb(err, username):
+            # probably an IntegrityError?  What's a better way to do this?
+            raise Collision(username)
+        d.addErrback(eb, username)
+
+        return d
+
+
+    def cookieFromUsername(self, username):
+        """
+        Translate a username into a cookie value, creating it if an existing
+        cookie value doesn't already exist.
+
+        @param username: Username to get cookie value for.
+
+        @return: A C{Deferred} which will fire with a cookie value (string).
+        """
+        op = SQL(
+            "SELECT cookie "
+            "FROM auth_cookie "
+            "WHERE name = ?", (username,)
+        )
+        def parseRows(rows):
+            if not rows:
+                value = hashlib.sha1(os.urandom(16)).hexdigest()
+                op = SQL(
+                    "INSERT INTO auth_cookie "
+                    "(cookie, name, ipnr, time) "
+                    "VALUES (?, ?, '', ?)", (value, username, int(time.time()))
+                )
+                return self.runner.run(op).addCallback(lambda _:value)
+            return rows[0][0]
+        return self.runner.run(op).addCallback(parseRows)
+
+
+    def usernameFromCookie(self, cookie_value):
+        """
+        Get the username associated with an authentication cookie's value.
+
+        @param cookie_value: A value returned by L{cookieFromUsername} and
+            likely stored in the browser as the C{trac_auth} cookie.
+
+        @return: A C{Deferred} which will fire with a username or will errback
+            with C{NotFoundError} if C{cookie_value} is not a valid cookie.
+        """
+        op = SQL(
+            "SELECT name "
+            "FROM auth_cookie "
+            "WHERE cookie = ?", (cookie_value,)
+        )
+        def parseRows(rows):
+            if not rows:
+                raise NotFoundError(cookie_value)
+            return rows[0][0]
+        return self.runner.run(op).addCallback(parseRows)
 
 
 

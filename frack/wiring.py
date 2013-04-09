@@ -22,7 +22,10 @@ from twisted.web import static
 from twisted.web.resource import Resource
 from twisted.web.server import NOT_DONE_YET, Site
 
-from frack.web import TicketApp
+from jinja2 import FileSystemLoader, Environment
+
+from frack.db import AuthStore
+from frack.web import TicketApp, PersonaAuthApp, Renderer, TracAuthWrapper
 from frack.files import DiskFileStore
 
 
@@ -72,16 +75,33 @@ class WebService(Service):
 
     @param port: An endpoint description, suitable for `serverToString`.
     """
-    def __init__(self, port, mediaPath, runner, templateRoot, fileRoot):
+    def __init__(self, port, mediaPath, runner, templateRoot, fileRoot, baseUrl,
+                 secureCookies=True, frackRootPath=''):
         self.port = port
-        # XXX backdoor... that's really the front door, because it's the only
-        # door.
-        from frack.web import FakeAuthenticatorDontActuallyUseExceptForTesting
+
         self.root = Resource()
         file_store = DiskFileStore(fileRoot)
-        tickets = FakeAuthenticatorDontActuallyUseExceptForTesting(
-                    TicketApp(runner, templateRoot, file_store).resource())
-        self.root.putChild('tickets', tickets)
+
+        loader = FileSystemLoader(templateRoot)
+        jinja_env = Environment(loader=loader)
+        jinja_env.globals['frack_root'] = frackRootPath
+        renderer = Renderer(jinja_env)
+
+        auth_store = AuthStore(runner)
+        
+        # ticket app
+        ticket_app = TicketApp(runner, renderer, file_store,
+                               frackRootPath=frackRootPath)
+        self.root.putChild('tickets',
+            TracAuthWrapper(auth_store, ticket_app.app.resource()))
+
+        # authentication/registration app
+        auth_app = PersonaAuthApp(runner, renderer, audience=baseUrl,
+                                  frackRootPath=frackRootPath)
+        auth_app.secure_cookie = secureCookies
+        self.root.putChild('auth',
+            TracAuthWrapper(auth_store, auth_app.app.resource())
+
         self.root.putChild('static', static.File(mediaPath))
         self.root.putChild('files', static.File(fileRoot))
         self.site = Site(self.root)

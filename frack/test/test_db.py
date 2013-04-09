@@ -3,7 +3,8 @@ import time
 from twisted.trial.unittest import TestCase
 from twisted.python.util import sibpath
 from twisted.internet import defer
-from frack.db import TicketStore, DBStore, UnauthorizedError, NotFoundError
+from frack.db import (TicketStore, DBStore, UnauthorizedError, NotFoundError,
+                      AuthStore, Collision)
 from norm.sqlite import SqliteTranslator
 from norm.common import BlockingRunner
 from norm.operation import SQL
@@ -522,6 +523,116 @@ class TicketStoreTest(TestCase):
         self.assertFailure(store.addAttachmentMetadata(5622, {}),
                            UnauthorizedError)
 
+
+
+class AuthStoreTest(TestCase):
+    """
+    Tests for database-backed authentication.
+    """
+
+    def populatedStore(self):
+        """
+        Return an L{AuthStore} with some expected user data in it.
+        """
+        db = sqlite3.connect(":memory:")
+        db.executescript(open(sibpath(__file__, "trac_test.sql")).read())
+        translator = SqliteTranslator()
+        runner = BlockingRunner(db, translator)
+        store = AuthStore(runner)
+        return store
+
+
+    @defer.inlineCallbacks
+    def test_usernameFromEmail(self):
+        """
+        usernameFromEmail should translate an email address to a username if
+        possible, otherwise, it should raise an exception.
+        """
+        store = self.populatedStore()
+
+        username = yield store.usernameFromEmail('alice@example.com')
+        self.assertEqual(username, 'alice')
+
+        self.assertFailure(store.usernameFromEmail('dne@example.com'),
+                           NotFoundError)
+
+
+    @defer.inlineCallbacks
+    def test_createUser(self):
+        """
+        createUser will create a user associated with an email address
+        """
+        store = self.populatedStore()
+
+        username = yield store.createUser('joe@example.com', 'joe')
+        self.assertEqual(username, 'joe', "Should return the username")
+
+        username = yield store.usernameFromEmail('joe@example.com')
+        self.assertEqual(username, 'joe')
+
+
+    @defer.inlineCallbacks
+    def test_createUser_justEmail(self):
+        """
+        You can provide just the email address
+        """
+        store = self.populatedStore()
+
+        username = yield store.createUser('joe@example.com')
+        self.assertEqual(username, 'joe@example.com')
+
+        username = yield store.usernameFromEmail('joe@example.com')
+        self.assertEqual(username, 'joe@example.com')
+
+
+    def test_createUser_alreadyExists(self):
+        """
+        When trying to create a user with the same username as another user,
+        an error is returned.  Also, if the email address is being used, it's
+        an error too.
+        """
+        store = self.populatedStore()
+
+        self.assertFailure(store.createUser('alice@example.com', 'alice'),
+                           Collision)
+
+        # email associated with more than one user is not allowed
+        self.assertFailure(store.createUser('alice@example.com', 'bob'),
+                           Collision)
+
+
+    @defer.inlineCallbacks
+    def test_cookieFromUsername(self):
+        """
+        Should get or create an auth_cookie entry.
+        """
+        store = self.populatedStore()
+
+        cookie_value = yield store.cookieFromUsername('alice')
+
+        # this magical value is found in test/trac_test.sql
+        self.assertEqual(cookie_value, "a331422278bd676f3809e7a9d8600647",
+                         "Should match the existing cookie value")
+
+        username = yield store.createUser('joe@example.com')
+        cookie_value = yield store.cookieFromUsername(username)
+        self.assertNotEqual(cookie_value, None)
+        value2 = yield store.cookieFromUsername(username)
+        self.assertEqual(cookie_value, value2)
+
+
+    @defer.inlineCallbacks
+    def test_usernameFromCookie(self):
+        """
+        Should return the username associated with a cookie value.
+        """
+        store = self.populatedStore()
+
+        alice_cookie = "a331422278bd676f3809e7a9d8600647"
+        username = yield store.usernameFromCookie(alice_cookie)
+        self.assertEqual(username, 'alice')
+
+        self.assertFailure(store.usernameFromCookie('dne'), NotFoundError)
 
 
 

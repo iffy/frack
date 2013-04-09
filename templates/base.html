@@ -32,8 +32,14 @@
       <div id="metanav" class="nav">
         <ul>
           {% if user %}
-          <li class="first">logged in as {{ user|e }}</li>
-          <li><a href="/trac/logout">Logout</a></li>
+            <li class="first">logged in as {{ user|e }}</li>
+            <li><a href="#" class="signout-button">Logout</a></li>
+          {% elif logged_in_email %}
+            <li class="first">authenticated as {{ logged_in_email|e }}</li>
+            <li><a href="{{ frack_root }}/auth/register">Register</a></li>
+            <li><a href="#" class="signout-button">Logout</a></li>
+          {% else %}
+            <li class="first"><a class="signin-button" href="#"><img src="https://developer.mozilla.org/files/3967/plain_sign_in_black.png"></a></li>
           {% endif %}
           <li class="last"><a href="/trac/prefs">Preferences</a></li>
         </ul>
@@ -53,6 +59,49 @@
     {% endblock %}
     <script>
     $(function() {
+      // enable persona sign-in
+      $('.signin-button').click(function() {
+        navigator.id.request();
+        return false;
+      });
+      $('.signout-button').click(function() {
+        navigator.id.logout();
+        return false;
+      });
+      navigator.id.watch({
+        loggedInUser: {% if logged_in_email %}'{{ logged_in_email|e }}'{% else %}null{% endif %},
+        onlogin: function(assertion) {
+          $.ajax({
+            type: 'POST',
+            url: '{{ frack_root }}/auth/login',
+            data: {assertion: assertion},
+            success: function(r) {
+              if (!r.user) {
+                // not registered
+                window.location = '{{ frack_root }}/auth/register';
+              } else {
+                // authenticated with a registered user
+                window.location.reload();
+              }
+            },
+            error: function(r) {
+              navigator.id.logout();
+            }
+          });
+        },
+        onlogout: function() {
+          $.ajax({
+            type: 'GET',
+            url: '{{ frack_root }}/auth/logout',
+            success: function() {
+              window.location.reload();
+            },
+            error: function() {
+            }
+          });
+        }
+      });
+
       // Load users into the <select>s that need them
       $.ajax('{{ urlpath.child('users') }}', {
         success: function(response) {
