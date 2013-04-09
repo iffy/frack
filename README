@@ -44,14 +44,14 @@ frack.test'. For running a development server:
 # want to be in the url path.  Don't worry, this will be removed later.
 
 
-# To create a new ticket as the user "foo" go to:
+# To create a new ticket go to:
 
-    http://localhost:1353/tickets/foo/newticket
+    http://localhost:1353/tickets/newticket
 
 
-# To view existing tickets as an anonymous user go to:
+# To view existing tickets go to:
 
-    http://localhost:1353/tickets//ticket/<ticket_number>
+    http://localhost:1353/tickets/ticket/<ticket_number>
 
 
 # Ticket numbers in the test database are: 3312, 5622, 5517, 2723, 4712.

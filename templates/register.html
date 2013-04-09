@@ -1,12 +1,30 @@
-<html>
-  <head>
-    <title>Register</title>
-  </head>
-  <body>
-    Register a username so you can start fixing things:
-    <form method="post">
-      Username: <input type="text" name="username">
-      <input type="submit" value="Register">
-    </form>
-  </body>
-</html>
+{% extends 'base.html' %}
+
+{% block content %}
+<div id="content" class="register">
+  {% if user %}
+    <p>
+      You are registered as {{ user|e }}.
+    </p>
+
+    <p>
+      Now you can <a href="{{ frack_root }}/tickets/newticket">create a ticket.</a>
+    </p>
+
+  {% elif logged_in_email %}
+    
+      <p>
+        Register a username so you can start fixing things:
+      </p>
+      <div>
+        <form method="post">
+          <div><strong>Username:</strong></div>
+          <input type="text" name="username">
+          <input type="submit" value="Register">
+        </form>
+      </div>
+  {% else %}
+    You must <a href="#" class="signin-button">sign in</a> before you can register.
+  {% endif %}
+</div>
+{% endblock %}

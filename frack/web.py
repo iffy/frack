@@ -249,11 +249,12 @@ class TicketApp(object):
     app = Klein()
 
 
-    def __init__(self, runner, renderer, file_store):
+    def __init__(self, runner, renderer, file_store, frackRootPath):
         self.runner = runner
         self.file_store = file_store
         self._cache = {}
         self.renderer = renderer
+        self.frackRootPath = frackRootPath
 
 
     def render(self, *args, **kwargs):
@@ -544,10 +545,11 @@ class PersonaAuthApp(object):
     secure_cookie = True
 
 
-    def __init__(self, runner, renderer, audience):
+    def __init__(self, runner, renderer, audience, frackRootPath):
         self.store = AuthStore(runner)
         self.audience = audience
         self.renderer = renderer
+        self.frackRootPath = frackRootPath
 
 
     def render(self, *args, **kwargs):
@@ -594,17 +596,14 @@ class PersonaAuthApp(object):
         being used yet.
         """
         err.trap(NotFoundError)
-        request.setHeader('content-type', 'application/json')
-        return json.dumps({
-            'email': getEmail(request),
-            'user': None,
-        }).encode('utf-8')
+        return self.jsonUserState(err, request)
 
 
     def _logThemIn(self, username, request):
         setUser(request, username)
         d = self.store.cookieFromUsername(username)
-        return d.addCallback(self.setTracCookie, request)
+        d.addCallback(self.setTracCookie, request)
+        return d.addCallback(self.jsonUserState, request)
 
 
     def setTracCookie(self, cookie_value, request):
@@ -613,6 +612,9 @@ class PersonaAuthApp(object):
         request.addCookie(self.cookie_name, cookie_value.encode('utf-8'),
                           path='/',
                           secure=self.secure_cookie)
+
+
+    def jsonUserState(self, ignore, request):
         request.setHeader('content-type', 'application/json')
         return json.dumps({
             'email': getEmail(request),
@@ -639,7 +641,10 @@ class PersonaAuthApp(object):
 
     def registered(self, username, request):
         setUser(request, username)
-        request.redirect('/tickets/newticket')
+        d = self.store.cookieFromUsername(username)
+        d.addCallback(self.setTracCookie, request)
+        d.addCallback(lambda _:self.render(request, 'register.html'))
+        return d
 
 
     @app.route('/logout')

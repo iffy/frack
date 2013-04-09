@@ -32,10 +32,14 @@
       <div id="metanav" class="nav">
         <ul>
           {% if user %}
-          <li class="first">logged in as {{ user|e }}</li>
-          <li><a href="#" class="signout-button">Logout</a></li>
+            <li class="first">logged in as {{ user|e }}</li>
+            <li><a href="#" class="signout-button">Logout</a></li>
+          {% elif logged_in_email %}
+            <li class="first">authenticated as {{ logged_in_email|e }}</li>
+            <li><a href="{{ frack_root }}/auth/register">Register</a></li>
+            <li><a href="#" class="signout-button">Logout</a></li>
           {% else %}
-          <li class="first"><a class="signin-button" href="#"><img src="https://developer.mozilla.org/files/3967/plain_sign_in_black.png"></a></li>
+            <li class="first"><a class="signin-button" href="#"><img src="https://developer.mozilla.org/files/3967/plain_sign_in_black.png"></a></li>
           {% endif %}
           <li class="last"><a href="/trac/prefs">Preferences</a></li>
         </ul>
@@ -69,12 +73,12 @@
         onlogin: function(assertion) {
           $.ajax({
             type: 'POST',
-            url: '/auth/login',
+            url: '{{ frack_root }}/auth/login',
             data: {assertion: assertion},
             success: function(r) {
               if (!r.user) {
                 // not registered
-                window.location = '/auth/register';
+                window.location = '{{ frack_root }}/auth/register';
               } else {
                 // authenticated with a registered user
                 window.location.reload();
@@ -88,7 +92,7 @@
         onlogout: function() {
           $.ajax({
             type: 'GET',
-            url: '/auth/logout',
+            url: '{{ frack_root }}/auth/logout',
             success: function() {
               window.location.reload();
             },
