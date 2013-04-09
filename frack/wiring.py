@@ -100,7 +100,7 @@ class WebService(Service):
                                   frackRootPath=frackRootPath)
         auth_app.secure_cookie = secureCookies
         self.root.putChild('auth',
-            TracAuthWrapper(auth_store, auth_app.app.resource())
+            TracAuthWrapper(auth_store, auth_app.app.resource()))
 
         self.root.putChild('static', static.File(mediaPath))
         self.root.putChild('files', static.File(fileRoot))

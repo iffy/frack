@@ -253,8 +253,26 @@ class TicketApp(object):
         self.runner = runner
         self.file_store = file_store
         self._cache = {}
+        self._userList = None
+        self._userList_lastModified = None
         self.renderer = renderer
         self.frackRootPath = frackRootPath
+
+
+    @defer.inlineCallbacks
+    def getUserList(self, request):
+        """
+        Get the list of users and the last time the list was modified returned
+        as a deferred tuple.
+        """
+        if self._userList is None or self._userList_lastModified:
+            # need to refresh it
+            store = TicketStore(self.runner, getUser(request))
+            new_list = yield store.userList()
+            self._userList = list(new_list)
+            self._userList_lastModified = time.time()
+
+        defer.returnValue((self._userList, self._userList_lastModified))
 
 
     def render(self, *args, **kwargs):
@@ -308,8 +326,11 @@ class TicketApp(object):
         """
         Get a list of all the users in the system
         """
-        # XXX this is all fake
-        last_modified = time.mktime((2001, 1, 1, 0, 0, 0, 0, 0, 0))
+        return self.getUserList(request).addCallback(self.gotUserList, request)
+
+
+    def gotUserList(self, data, request):
+        users, last_modified = data
 
         if_modified_since = request.getHeader('if-modified-since')
         if if_modified_since:
@@ -322,8 +343,7 @@ class TicketApp(object):
         # ask the client to cache this
         request.setHeader('Last-Modified', utils.formatdate(last_modified))
         return self.render(request, 'select.html', {
-            # the current drop down on twisteds' site has about 4000 options
-            'options': ['jim', 'bob', 'sam', 'joe']*1000
+            'options': users,
         })
 
 
