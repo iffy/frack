@@ -437,6 +437,20 @@ class TicketStore(object):
         return self.runner.run(op)
 
 
+    def userList(self):
+        """
+        Get a list of the users in the database.
+        """
+        # XXX should we check authenticated?
+        op = SQL('''
+            SELECT sid
+            FROM session
+            ORDER BY sid''')
+        def parseRows(rows):
+            return (x[0] for x in rows)
+        return self.runner.run(op).addCallback(parseRows)
+
+
 
 class AuthStore(object):
     """

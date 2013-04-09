@@ -487,6 +487,17 @@ class TicketStoreTest(TestCase):
 
 
     @defer.inlineCallbacks
+    def test_userList(self):
+        """
+        Should get all the users in the db.
+        """
+        store = self.populatedStore()
+
+        users = yield store.userList()
+        self.assertEqual(list(users), ['alice'])
+
+
+    @defer.inlineCallbacks
     def test_addAttachmentMetadata(self):
         """
         You can add attachment metadata to a ticket.
