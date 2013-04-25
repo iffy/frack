@@ -1,3 +1,5 @@
+[![Build Status](https://secure.travis-ci.org/iffy/frack.png)](http://travis-ci.org/iffy/frack)
+
 # -*- mode: org -*-
 
 Frack, A Completely Ridiculous Issue Tracker
