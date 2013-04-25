@@ -3,7 +3,7 @@
 Frack, A Completely Ridiculous Issue Tracker
 ============================================
 
-I wrote this because twistedmatrix.com has a Trac instance full of
+This was written because twistedmatrix.com has a Trac instance full of
 valuable data, and Trac has become increasingly annoying over the past
 7 years. Frack is an attempt to provide a better face on that data.
 
@@ -11,7 +11,7 @@ valuable data, and Trac has become increasingly annoying over the past
 How It Works
 ------------
 Right now, it's just a normal website (like from the 90s) for interacting with
-Trac.
+Trac tickets.
 
 
 How To Run It
