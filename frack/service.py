@@ -43,7 +43,7 @@ class Options(usage.Options):
 
                      ['mediapath', 'p',
                       os.path.join(os.path.dirname(
-                    os.path.dirname(os.path.abspath(__file__))), 'webclient'),
+                    os.path.dirname(os.path.abspath(__file__))), 'media'),
                       'Location of media files for web UI.'],
                      ['baseUrl', 'b', 'http://%s:1353/' % (socket.getfqdn(),),
                       'Domain web client will be accessed from'],
