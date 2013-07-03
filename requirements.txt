@@ -1,4 +1,5 @@
 Twisted
 klein
 Jinja2==2.6
--e git://github.com/iffy/norm.git@master#egg=norm
+-e
+git://github.com/iffy/norm.git@2d734a903883794b8541b84f987d1ce68d9e7312#egg=norm-dev
